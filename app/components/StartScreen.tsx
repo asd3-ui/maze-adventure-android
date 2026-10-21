@@ -1,105 +1,98 @@
-import React, { useMemo } from 'react';
-import { StyleSheet, View } from 'react-native';
+import React from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import type { Enemy, MazeTheme, Point } from './types';
+import { LevelSelector } from './LevelSelector';
+import type { MazeTheme } from './types';
 
-type MazeBoardProps = {
-  maze: number[][];
-  player: Point;
-  goal: Point;
-  enemies: Enemy[];
-  hint: Point[];
+type StartScreenProps = {
   theme: MazeTheme;
+  unlocked: number;
+  currentLevel: number;
+  onStart: () => void;
+  onSettings: () => void;
+  onSelectLevel: (level: number) => void;
 };
 
-export function MazeBoard({ maze, player, goal, enemies, hint, theme }: MazeBoardProps) {
-  const enemySet = useMemo(() => new Set(enemies.map((enemy) => `${enemy.x},${enemy.y}`)), [enemies]);
-  const hintSet = useMemo(() => new Set(hint.map((cell) => `${cell.x},${cell.y}`)), [hint]);
-  const cellSize = Math.max(10, Math.min(16, 320 / maze.length));
-
+export function StartScreen({ theme, unlocked, currentLevel, onStart, onSettings, onSelectLevel }: StartScreenProps) {
   return (
-    <View style={[styles.board, { backgroundColor: theme.panel, borderColor: theme.primary }]}>
-      {maze.map((row, y) => (
-        <View key={`row-${y}`} style={styles.row}>
-          {row.map((cell, x) => {
-            const isPlayer = player.x === x && player.y === y;
-            const isGoal = goal.x === x && goal.y === y;
-            const isEnemy = enemySet.has(`${x},${y}`);
-            const isHint = hintSet.has(`${x},${y}`) && !isPlayer && !isGoal && !isEnemy && cell === 0;
+    <ScrollView contentContainerStyle={[styles.container, { backgroundColor: theme.bg }]}>
+      <View style={[styles.card, { backgroundColor: theme.panel }]}>
+        <Text style={[styles.logo, { color: theme.primary }]}>🧭</Text>
+        <Text style={[styles.title, { color: theme.fg }]}>Maze Adventure</Text>
+        <Text style={[styles.subtitle, { color: theme.secondary }]}>مرحباً! اختر مستوى، اجتز المتاهة، واحتفظ بالتقدم على هذا الجهاز.</Text>
 
-            return (
-              <View
-                key={`${x}-${y}`}
-                style={[
-                  styles.cell,
-                  {
-                    width: cellSize,
-                    height: cellSize,
-                    backgroundColor: cell === 1 ? theme.wall : theme.floor,
-                    borderColor: theme.secondary,
-                  },
-                ]}
-              >
-                {isHint && <View style={[styles.hintDot, { backgroundColor: theme.accent }]} />}
-                {isGoal && <View style={[styles.goal, { backgroundColor: theme.goal }]} />}
-                {isEnemy && <View style={[styles.enemy, { backgroundColor: theme.enemy }]} />}
-                {isPlayer && <View style={[styles.player, { backgroundColor: theme.player }]} />}
-              </View>
-            );
-          })}
-        </View>
-      ))}
-    </View>
+        <Pressable onPress={onStart} style={[styles.primaryButton, { backgroundColor: theme.primary }]}>
+          <Text style={[styles.primaryText, { color: '#0d1426' }]}>ابدأ اللعب</Text>
+        </Pressable>
+
+        <Pressable onPress={onSettings} style={[styles.secondaryButton, { borderColor: theme.primary }]}>
+          <Text style={[styles.secondaryText, { color: theme.primary }]}>الإعدادات</Text>
+        </Pressable>
+
+        <Text style={[styles.sectionTitle, { color: theme.fg }]}>اختيار المستوى</Text>
+        <LevelSelector selected={currentLevel} unlocked={unlocked} theme={theme} onSelect={onSelectLevel} />
+      </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  board: {
-    borderRadius: 18,
-    borderWidth: 2,
-    padding: 8,
-    alignSelf: 'center',
+  container: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    padding: 20,
+  },
+  card: {
+    borderRadius: 24,
+    padding: 22,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.12,
+    shadowOpacity: 0.2,
     shadowRadius: 12,
     elevation: 8,
   },
-  row: {
-    flexDirection: 'row',
+  logo: {
+    fontSize: 36,
+    textAlign: 'center',
   },
-  cell: {
-    borderWidth: 1,
-    justifyContent: 'center',
+  title: {
+    fontSize: 30,
+    fontWeight: '900',
+    textAlign: 'center',
+    marginTop: 6,
+  },
+  subtitle: {
+    fontSize: 15,
+    textAlign: 'center',
+    lineHeight: 24,
+    marginTop: 8,
+    marginBottom: 18,
+  },
+  primaryButton: {
+    borderRadius: 14,
+    paddingVertical: 14,
     alignItems: 'center',
-    borderRadius: 4,
-    margin: 1,
+    marginBottom: 12,
   },
-  hintDot: {
-    width: 5,
-    height: 5,
-    borderRadius: 99,
-    opacity: 0.8,
+  primaryText: {
+    fontSize: 17,
+    fontWeight: '800',
   },
-  goal: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    borderWidth: 2,
-    borderColor: '#ffffff',
+  secondaryButton: {
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginBottom: 18,
   },
-  enemy: {
-    width: 10,
-    height: 10,
-    borderRadius: 99,
-    borderWidth: 2,
-    borderColor: '#ffffff',
+  secondaryText: {
+    fontSize: 15,
+    fontWeight: '700',
   },
-  player: {
-    width: 12,
-    height: 12,
-    borderRadius: 99,
-    borderWidth: 2,
-    borderColor: '#ffffff',
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    marginBottom: 12,
+    textAlign: 'center',
   },
 });
