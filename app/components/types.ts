@@ -33,7 +33,7 @@ export type MazeTheme = {
   secondary: string;
 };
 
-export type ScreenMode = 'start' | 'playing' | 'won' | 'lost' | 'settings';
+export type ScreenMode = 'start' | 'playing' | 'won' | 'lost' | 'settings' | 'shop';
 
 export type ProgressState = {
   unlocked: number;
@@ -42,6 +42,9 @@ export type ProgressState = {
   soundEnabled: boolean;
   vibrationEnabled: boolean;
   score: number;
+  coins?: number;
+  swords?: number;
+  bombs?: number;
 };
 
 export type LevelConfig = {
