@@ -1,10 +1,21 @@
 import type { BossAttackPhase, Direction, Enemy, EnemyKind, LevelConfig, Point } from './types';
 
-export const TOTAL_LEVELS = 25;
+export const TOTAL_LEVELS = 100;
 
-export const SIZES = [
-  9, 9, 11, 11, 13, 13, 15, 15, 17, 17, 17, 19, 19, 19, 21, 21, 21, 23, 23, 23, 25, 25, 25, 25, 25,
-];
+export const LEVEL_ENVIRONMENTS = [
+  'غابة الضباب','صحراء الذهب','كهوف الجليد','قلعة الظلال','مستنقع السموم','بركان اللهب','مدينة الأطلال','معبد البلور','مناجم الظلام','وادي العواصف',
+  'غابة الفطر','قصر الرمال','بحيرة متجمدة','حصن العظام','أدغال مسحورة','حمم التنين','مقبرة قديمة','كهف الكريستال','أنفاق مهجورة','قمم الرعد',
+  'حديقة الأشواك','صحراء الليل','ممرات الجليد','برج الساحر','مستنقع الأشباح','فوهة البركان','مدينة مغمورة','معبد الشمس','منجم الألماس','وادي الرياح',
+  'غابة القمر','كثبان حمراء','قصر الصقيع','حصن الحديد','أدغال الظلال','بحيرة الحمم','سراديب الملوك','كهوف الياقوت','مصنع مهجور','جبال العاصفة',
+  'غابة العمالقة','صحراء العظام','متاهة الثلج','قلعة الغراب','مستنقع السحر','قلب البركان','مدينة الأشباح','معبد القمر','مناجم الملك','وادي الصواعق',
+  'غابة البلور','صحراء السراب','نهر الجليد','حصن الوحوش','أدغال الليل','جبل النار','مرفأ غارق','معبد التنين','أنفاق الذهب','عاصفة الرمال',
+  'غابة الأرواح','صحراء الزمرد','كهف الشتاء','قلعة الدم','مستنقع الظلام','حمم سوداء','مدينة مفقودة','معبد النجوم','منجم اللعنة','وادي التنين',
+  'غابة التيه','صحراء الأشباح','قصر الجليد','حصن الجحيم','أدغال الأفاعي','قلب الجبل','أطلال البحر','معبد الزمن','مناجم الجبابرة','قمة البرق',
+  'الغابة المحرمة','بحر الرمال','متاهة الصقيع','قلعة الجحيم','مستنقع الأبدية','بركان التنين','عاصمة الظلال','معبد الأبطال','منجم الملك الأخير','وادي النهاية',
+  'غابة العوالم','صحراء القيامة','مملكة الجليد','عرش الوحوش','مستنقع الخلود','جحيم النار','المدينة الأخيرة','معبد الأبدية','قلب المتاهة','عرين ملك الوحوش',
+] as const;
+
+export const SIZES = Array.from({ length: TOTAL_LEVELS }, (_, index) => Math.min(31, 9 + Math.floor(index / 6) * 2));
 
 const DIRECTIONS = [
   { x: 0, y: -1, direction: 'up' as const },
@@ -84,16 +95,16 @@ export type MazeTheme = (typeof LEVEL_THEMES)[number];
 
 export function getLevelConfig(level: number): LevelConfig {
   const size = SIZES[Math.min(level - 1, SIZES.length - 1)];
-  const enemyCount = Math.min(6, 1 + Math.floor(level / 3));
-  const enemySpeed = Math.max(550, 1700 - level * 40);
+  const enemyCount = Math.min(14, 1 + Math.floor(level / 2.5));
+  const enemySpeed = Math.max(380, 1700 - level * 13);
 
   return {
     size,
     enemyCount,
     enemySpeed,
-    hintDensity: Math.max(0.18, 0.75 - level * 0.02),
-    scoreMultiplier: 1 + level * 0.25,
-    bossThreshold: Math.max(4, 9 + level / 4),
+    hintDensity: Math.max(0.08, 0.75 - level * 0.0065),
+    scoreMultiplier: 1 + level * 0.12,
+    bossThreshold: Math.max(3, 9 - Math.floor(level / 12)),
   };
 }
 
@@ -292,9 +303,10 @@ function getNearestStepToward(maze: number[][], enemy: Enemy, target: Point, ste
 
 export function chooseEnemyKind(level: number, index: number): EnemyKind {
   const pool: EnemyKind[] = ['walker', 'walker', 'hunter', 'spinner', 'phantom'];
-  if (level >= 6) pool.push('hunter');
-  if (level >= 10) pool.push('boss');
-  if (level >= 14) pool.push('phantom');
+  if (level >= 4) pool.push('hunter', 'hunter');
+  if (level >= 8) pool.push('boss');
+  if (level >= 12) pool.push('phantom', 'phantom');
+  if (level >= 20) pool.push('boss');
 
   return pool[(index + level) % pool.length];
 }

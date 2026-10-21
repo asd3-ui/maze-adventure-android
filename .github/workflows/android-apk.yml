@@ -55,6 +55,7 @@ jobs:
             app.json
             eas.json
             package.json
+            package-lock.json
             tsconfig.json
           sparse-checkout-cone-mode: false
       - name: Set up Node.js
@@ -74,6 +75,25 @@ jobs:
         run: npm run typecheck
       - name: Generate native Android project
         run: npx expo prebuild --platform android --no-install
+      - name: Install Android NDK with retry
+        shell: bash
+        run: |
+          set -euo pipefail
+          NDK_VERSION="27.1.12297006"
+          SDKMANAGER="${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager"
+          rm -rf "${ANDROID_SDK_ROOT}/ndk/${NDK_VERSION}"
+          for attempt in 1 2 3; do
+            echo "Installing Android NDK ${NDK_VERSION} (attempt ${attempt}/3)"
+            if "${SDKMANAGER}" --install "ndk;${NDK_VERSION}"; then
+              break
+            fi
+            rm -rf "${ANDROID_SDK_ROOT}/ndk/${NDK_VERSION}"
+            if [ "${attempt}" -eq 3 ]; then
+              echo "NDK installation failed after 3 attempts" >&2
+              exit 1
+            fi
+            sleep 5
+          done
       - name: Build release APK
         working-directory: android
         run: ./gradlew assembleRelease

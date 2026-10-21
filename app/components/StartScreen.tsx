@@ -10,19 +10,25 @@ type StartScreenProps = {
   currentLevel: number;
   onStart: () => void;
   onSettings: () => void;
+  onShop: () => void;
+  coins: number;
   onSelectLevel: (level: number) => void;
 };
 
-export function StartScreen({ theme, unlocked, currentLevel, onStart, onSettings, onSelectLevel }: StartScreenProps) {
+export function StartScreen({ theme, unlocked, currentLevel, onStart, onSettings, onShop, coins, onSelectLevel }: StartScreenProps) {
   return (
     <ScrollView contentContainerStyle={[styles.container, { backgroundColor: theme.bg }]}>
       <View style={[styles.card, { backgroundColor: theme.panel }]}>
         <Text style={[styles.logo, { color: theme.primary }]}>🗝️</Text>
         <Text style={[styles.title, { color: theme.fg }]}>متاهات المغامرة</Text>
-        <Text style={[styles.subtitle, { color: theme.secondary }]}>اهرب من الوحوش، اجمع الجواهر، والتقط الدرع السحري قبل الوصول إلى بوابة النجاة!</Text>
+        <Text style={[styles.subtitle, { color: theme.secondary }]}>100 مرحلة متصاعدة الصعوبة، وبيئات متجددة، ووحوش أشد فتكًا. اجمع العملات واشترِ السيوف والقنابل لتقاتل وتنجو!</Text>
 
         <Pressable onPress={onStart} style={[styles.primaryButton, { backgroundColor: theme.primary }]}>
           <Text style={[styles.primaryText, { color: '#0d1426' }]}>ابدأ اللعب</Text>
+        </Pressable>
+
+        <Pressable onPress={onShop} style={[styles.secondaryButton, { backgroundColor: theme.surface, borderColor: theme.accent }]}>
+          <Text style={[styles.secondaryText, { color: theme.accent }]}>🛒 متجر الأدوات — 🪙 {coins}</Text>
         </Pressable>
 
         <Pressable onPress={onSettings} style={[styles.secondaryButton, { borderColor: theme.primary }]}>

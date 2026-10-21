@@ -12,7 +12,7 @@ type LevelSelectorProps = {
 export function LevelSelector({ selected, unlocked, theme, onSelect }: LevelSelectorProps) {
   return (
     <View style={styles.grid}>
-      {Array.from({ length: 25 }, (_, index) => index + 1).map((level) => {
+      {Array.from({ length: 100 }, (_, index) => index + 1).map((level) => {
         const locked = level > unlocked;
         const active = level === selected;
         return (
