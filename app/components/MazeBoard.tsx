@@ -1,0 +1,61 @@
+import React from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+
+import type { MazeTheme } from './types';
+
+type LevelSelectorProps = {
+  selected: number;
+  unlocked: number;
+  theme: MazeTheme;
+  onSelect: (level: number) => void;
+};
+
+export function LevelSelector({ selected, unlocked, theme, onSelect }: LevelSelectorProps) {
+  return (
+    <View style={styles.wrapper}>
+      {Array.from({ length: 25 }, (_, index) => index + 1).map((level) => {
+        const isDisabled = level > unlocked;
+        const isSelected = level === selected;
+
+        return (
+          <Pressable
+            key={level}
+            disabled={isDisabled}
+            onPress={() => onSelect(level)}
+            style={[
+              styles.levelButton,
+              {
+                backgroundColor: isSelected ? theme.primary : theme.panel,
+                borderColor: isSelected ? theme.primary : theme.secondary,
+                opacity: isDisabled ? 0.5 : 1,
+              },
+            ]}
+          >
+            <Text style={[styles.levelText, { color: isSelected ? '#0d1426' : theme.fg }]}>{level}</Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  wrapper: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+  },
+  levelButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    margin: 4,
+  },
+  levelText: {
+    fontSize: 14,
+    fontWeight: '800',
+  },
+});

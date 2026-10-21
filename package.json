@@ -1,28 +1,109 @@
-{
-  "name": "maze-adventure",
-  "version": "1.0.0",
-  "private": true,
-  "main": "expo-router/entry",
-  "scripts": {
-    "start": "expo start",
-    "android": "expo run:android",
-    "prebuild": "expo prebuild",
-    "lint": "expo lint"
-  },
-  "dependencies": {
-    "@react-native-async-storage/async-storage": "~2.0.0",
-    "expo": "~54.0.0",
-    "expo-av": "~16.0.0",
-    "expo-haptics": "~15.0.0",
-    "expo-router": "~6.0.0",
-    "expo-status-bar": "~3.0.9",
-    "react": "19.1.0",
-    "react-native": "0.81.5",
-    "react-native-safe-area-context": "~5.6.0",
-    "react-native-screens": "~4.16.0"
-  },
-  "devDependencies": {
-    "@types/react": "~19.1.0",
-    "typescript": "~5.9.2"
-  }
+import React from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+
+import type { MazeTheme } from './types';
+
+type ResultScreenProps = {
+  theme: MazeTheme;
+  result: 'won' | 'lost';
+  currentLevel: number;
+  totalLevels: number;
+  moves: number;
+  seconds: number;
+  onReplay: () => void;
+  onNext: () => void;
+  onHome: () => void;
+};
+
+export function ResultScreen({ theme, result, currentLevel, totalLevels, moves, seconds, onReplay, onNext, onHome }: ResultScreenProps) {
+  const isLast = currentLevel >= totalLevels;
+  const subtitle = result === 'won' ? (isLast ? 'أكملت جميع المستويات!' : 'مستوى جديد مفتوح الآن.') : 'حاول مرة أخرى وقدر طريقك بذكاء.';
+
+  return (
+    <View style={[styles.container, { backgroundColor: theme.bg }]}>
+      <View style={[styles.card, { backgroundColor: theme.panel }]}>
+        <Text style={[styles.badge, { color: result === 'won' ? theme.accent : theme.enemy }]}>{result === 'won' ? '🎉 فوز' : '💀 هزيمة'}</Text>
+        <Text style={[styles.title, { color: theme.fg }]}>{result === 'won' ? 'مبروك!' : 'حاول مرة أخرى'}</Text>
+        <Text style={[styles.subtitle, { color: theme.secondary }]}>{subtitle}</Text>
+
+        <View style={[styles.stats, { backgroundColor: theme.surface }]}> 
+          <Text style={[styles.statText, { color: theme.fg }]}>المستوى: {currentLevel}</Text>
+          <Text style={[styles.statText, { color: theme.fg }]}>الحركات: {moves}</Text>
+          <Text style={[styles.statText, { color: theme.fg }]}>الوقت: {String(Math.floor(seconds / 60)).padStart(2, '0')}:{String(seconds % 60).padStart(2, '0')}</Text>
+        </View>
+
+        <Pressable onPress={result === 'won' && !isLast ? onNext : onReplay} style={[styles.primaryButton, { backgroundColor: theme.primary }]}>
+          <Text style={[styles.primaryText, { color: '#0d1426' }]}>{result === 'won' && !isLast ? 'المستوى التالي' : 'إعادة المحاولة'}</Text>
+        </Pressable>
+
+        <Pressable onPress={onHome} style={[styles.secondaryButton, { borderColor: theme.primary }]}>
+          <Text style={[styles.secondaryText, { color: theme.primary }]}>الرئيسية</Text>
+        </Pressable>
+      </View>
+    </View>
+  );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    padding: 20,
+  },
+  card: {
+    borderRadius: 24,
+    padding: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  badge: {
+    fontSize: 24,
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+  title: {
+    fontSize: 30,
+    fontWeight: '900',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 15,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 18,
+  },
+  stats: {
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 18,
+  },
+  statText: {
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 6,
+  },
+  primaryButton: {
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  primaryText: {
+    fontSize: 17,
+    fontWeight: '800',
+  },
+  secondaryButton: {
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  secondaryText: {
+    fontSize: 15,
+    fontWeight: '700',
+  },
+});
