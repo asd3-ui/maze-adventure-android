@@ -9,7 +9,7 @@ import { MazeBoard } from './components/MazeBoard';
 import { ResultScreen } from './components/ResultScreen';
 import { SettingsScreen } from './components/SettingsScreen';
 import { StartScreen } from './components/StartScreen';
-import { LEVEL_THEMES, TOTAL_LEVELS, advanceEnemies, buildLevel, isWalkable } from './components/maze-utils';
+import { LEVEL_ENVIRONMENTS, LEVEL_THEMES, TOTAL_LEVELS, advanceEnemies, buildLevel, isWalkable } from './components/maze-utils';
 import type { Enemy, Point, ProgressState, ScreenMode } from './components/types';
 
 const STORAGE_KEY = 'maze-adventure-progress-v1';
@@ -20,6 +20,9 @@ const DEFAULT_PROGRESS: ProgressState = {
   soundEnabled: true,
   vibrationEnabled: true,
   score: 0,
+  coins: 0,
+  swords: 0,
+  bombs: 0,
 };
 
 export default function App() {
@@ -41,10 +44,12 @@ export default function App() {
   const [result, setResult] = useState<'won' | 'lost' | null>(null);
   const [score, setScore] = useState(0);
 
-  const theme = useMemo(
-    () => LEVEL_THEMES.find((entry) => entry.id === themeId) ?? LEVEL_THEMES[0],
-    [themeId]
-  );
+  const theme = useMemo(() => {
+    const selected = LEVEL_THEMES.find((entry) => entry.id === themeId) ?? LEVEL_THEMES[0];
+    if (screen === 'start' || screen === 'settings' || screen === 'shop') return selected;
+    const biome = LEVEL_THEMES[(currentLevel - 1) % LEVEL_THEMES.length];
+    return { ...biome, id: selected.id, name: LEVEL_ENVIRONMENTS[(currentLevel - 1) % LEVEL_ENVIRONMENTS.length] };
+  }, [themeId, currentLevel, screen]);
 
   const bossEnemy = enemies.find((enemy) => enemy.kind === 'boss') ?? null;
   const screenSlide = useRef(new Animated.Value(0)).current;
@@ -78,6 +83,9 @@ export default function App() {
           ...parsed,
           bestTimes: parsed.bestTimes ?? {},
           score: parsed.score ?? 0,
+          coins: parsed.coins ?? 0,
+          swords: parsed.swords ?? 0,
+          bombs: parsed.bombs ?? 0,
         };
 
         setProgress(merged);
@@ -117,6 +125,52 @@ export default function App() {
     setResult(null);
     setScreen('playing');
     setScore(0);
+  };
+
+  const buyItem = (item: 'sword' | 'bomb') => {
+    const cost = item === 'sword' ? 80 : 130;
+    if ((progress.coins ?? 0) < cost) {
+      void triggerHaptics('light');
+      return;
+    }
+    setProgress((previous) => ({
+      ...previous,
+      coins: (previous.coins ?? 0) - cost,
+      swords: (previous.swords ?? 0) + (item === 'sword' ? 1 : 0),
+      bombs: (previous.bombs ?? 0) + (item === 'bomb' ? 1 : 0),
+    }));
+    void triggerHaptics('medium');
+  };
+
+  const useSword = () => {
+    if (screen !== 'playing' || (progress.swords ?? 0) < 1) return;
+    const targetIndex = enemies.findIndex((enemy) => Math.abs(enemy.x - player.x) + Math.abs(enemy.y - player.y) === 1);
+    if (targetIndex < 0) return;
+    const target = enemies[targetIndex];
+    setProgress((previous) => ({ ...previous, swords: Math.max(0, (previous.swords ?? 0) - 1) }));
+    if (target.kind === 'boss' && (target.hp ?? 1) > 1) {
+      setEnemies((previous) => previous.map((enemy) => enemy.id === target.id ? { ...enemy, hp: (enemy.hp ?? 1) - 1 } : enemy));
+      setScore((previous) => previous + 40);
+    } else {
+      setEnemies((previous) => previous.filter((enemy) => enemy.id !== target.id));
+      setScore((previous) => previous + (target.kind === 'boss' ? 250 : 100));
+    }
+    void triggerHaptics('heavy');
+  };
+
+  const useBomb = () => {
+    if (screen !== 'playing' || (progress.bombs ?? 0) < 1) return;
+    const affected = enemies.filter((enemy) => Math.abs(enemy.x - player.x) + Math.abs(enemy.y - player.y) <= 2);
+    if (!affected.length) return;
+    setProgress((previous) => ({ ...previous, bombs: Math.max(0, (previous.bombs ?? 0) - 1) }));
+    setEnemies((previous) => previous.flatMap((enemy) => {
+      if (Math.abs(enemy.x - player.x) + Math.abs(enemy.y - player.y) > 2) return [enemy];
+      if (enemy.kind === 'boss' && (enemy.hp ?? 1) > 2) return [{ ...enemy, hp: (enemy.hp ?? 1) - 2 }];
+      if (enemy.kind === 'boss' && (enemy.hp ?? 1) === 2) return [{ ...enemy, hp: 1 }];
+      return [];
+    }));
+    setScore((previous) => previous + affected.length * 80);
+    void triggerHaptics('heavy');
   };
 
   const playSound = async (_type: 'move' | 'win' | 'lose') => {
@@ -164,6 +218,7 @@ export default function App() {
             [String(currentLevel)]: nextBest,
           },
           score: previous.score + earned,
+          coins: (previous.coins ?? 0) + 20 + currentLevel * 3,
         };
       });
       return;
@@ -198,6 +253,7 @@ export default function App() {
     if (foundGem) {
       setGems((previous) => previous.filter((gem) => gem.x !== nextX || gem.y !== nextY));
       setScore((previous) => previous + 50);
+      setProgress((previous) => ({ ...previous, coins: (previous.coins ?? 0) + 10 + Math.floor(currentLevel / 10) }));
       void triggerHaptics('medium');
     }
 
@@ -205,6 +261,7 @@ export default function App() {
       setShieldPickup(null);
       setShieldCharges((previous) => previous + 1);
       setScore((previous) => previous + 25);
+      setProgress((previous) => ({ ...previous, coins: (previous.coins ?? 0) + 5 }));
       void triggerHaptics('medium');
     }
 
@@ -275,6 +332,31 @@ export default function App() {
     finishRound('lost');
   }, [screen, enemies, player, shieldCharges]);
 
+  if (screen === 'shop') {
+    return (
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.bg }]}>
+        <View style={[styles.playArea, { justifyContent: 'center' }]}>
+          <View style={[styles.controls, { backgroundColor: theme.panel, padding: 22 }]}>
+            <Text style={[styles.bossText, { color: theme.fg, fontSize: 26, textAlign: 'center' }]}>🛒 متجر أدوات الصياد</Text>
+            <Text style={[styles.topBarText, { color: theme.accent, textAlign: 'center', marginVertical: 12 }]}>رصيدك: 🪙 {progress.coins ?? 0}</Text>
+            <Text style={[styles.legendText, { color: theme.secondary, textAlign: 'center', marginBottom: 12 }]}>السيف يضرب وحشًا مجاورًا. القنبلة تصيب الوحوش القريبة ضمن خطوتين.</Text>
+            <Pressable onPress={() => buyItem('sword')} style={[styles.shopItem, { backgroundColor: theme.surface, borderColor: theme.primary }]}>
+              <Text style={[styles.actionText, { color: theme.fg }]}>⚔️ سيف سحري — 80 عملة</Text>
+              <Text style={[styles.legendText, { color: theme.secondary }]}>المخزون: {progress.swords ?? 0}</Text>
+            </Pressable>
+            <Pressable onPress={() => buyItem('bomb')} style={[styles.shopItem, { backgroundColor: theme.surface, borderColor: theme.accent }]}>
+              <Text style={[styles.actionText, { color: theme.fg }]}>💣 قنبلة صاعقة — 130 عملة</Text>
+              <Text style={[styles.legendText, { color: theme.secondary }]}>المخزون: {progress.bombs ?? 0}</Text>
+            </Pressable>
+            <Pressable onPress={() => setScreen('start')} style={[styles.actionButton, { backgroundColor: theme.primary, marginTop: 12 }]}>
+              <Text style={[styles.actionText, { color: '#0d1426' }]}>العودة إلى اللعبة</Text>
+            </Pressable>
+          </View>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   if (screen === 'settings') {
     return (
       <SettingsScreen
@@ -336,6 +418,8 @@ export default function App() {
             currentLevel={currentLevel}
             onStart={() => startLevel(currentLevel)}
             onSettings={() => setScreen('settings')}
+            onShop={() => setScreen('shop')}
+            coins={progress.coins ?? 0}
             onSelectLevel={(level) => {
               if (level <= progress.unlocked) {
                 setCurrentLevel(level);
@@ -360,12 +444,12 @@ export default function App() {
         ]}
       >
         <View style={[styles.topBar, { backgroundColor: theme.panel }]}>
-          <Text style={[styles.topBarText, { color: theme.fg }]}>المستوى {currentLevel}</Text>
+          <Text style={[styles.topBarText, { color: theme.fg }]}>{currentLevel}/100 · {LEVEL_ENVIRONMENTS[(currentLevel - 1) % LEVEL_ENVIRONMENTS.length]}</Text>
           <Text style={[styles.topBarText, { color: theme.secondary }]}>الحركات: {moves}</Text>
           <Text style={[styles.topBarText, { color: theme.secondary }]}>
             {String(Math.floor(seconds / 60)).padStart(2, '0')}:{String(seconds % 60).padStart(2, '0')}
           </Text>
-          <Text style={[styles.topBarText, { color: theme.accent }]}>Score {score}</Text>
+          <Text style={[styles.topBarText, { color: theme.accent }]}>🪙 {progress.coins ?? 0} · {score}</Text>
         </View>
 
         {bossEnemy ? (
@@ -412,7 +496,18 @@ export default function App() {
           </View>
 
           <View style={styles.actionRow}>
-            <Pressable onPress={() => startLevel(currentLevel)} style={[styles.actionButton, { backgroundColor: theme.surface }]}>
+            <Pressable onPress={useSword} style={[styles.actionButton, { backgroundColor: theme.surface }]}>
+              <Text style={[styles.actionText, { color: theme.fg }]}>⚔️ {progress.swords ?? 0}</Text>
+            </Pressable>
+            <Pressable onPress={useBomb} style={[styles.actionButton, { backgroundColor: theme.surface }]}>
+              <Text style={[styles.actionText, { color: theme.fg }]}>💣 {progress.bombs ?? 0}</Text>
+            </Pressable>
+            <Pressable onPress={() => setScreen('shop')} style={[styles.actionButton, { backgroundColor: theme.surface }]}>
+              <Text style={[styles.actionText, { color: theme.fg }]}>المتجر</Text>
+            </Pressable>
+          </View>
+          <View style={styles.actionRow}>
+            <Pressable onPress={() => startLevel(currentLevel) style={[styles.actionButton, { backgroundColor: theme.surface }]}>
               <Text style={[styles.actionText, { color: theme.fg }]}>إعادة</Text>
             </Pressable>
             <Pressable onPress={() => setScreen('start')} style={[styles.actionButton, { backgroundColor: theme.surface }]}>
@@ -528,6 +623,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     alignItems: 'center',
   },
+  shopItem: { borderWidth: 1, borderRadius: 14, padding: 16, marginBottom: 12, alignItems: 'center', gap: 6 },
   actionText: {
     fontSize: 14,
     fontWeight: '800',
