@@ -4,29 +4,47 @@ on:
   push:
     branches: ["main"]
     paths:
-      - "App.js"
-      - "app.json"
-      - "package.json"
+      - "app/**"
       - "assets/**"
+      - "app.json"
+      - "eas.json"
+      - "package.json"
+      - "package-lock.json"
+      - "tsconfig.json"
       - ".github/workflows/android-apk.yml"
-      - ".github/workflows/android.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "app/**"
+      - "assets/**"
+      - "app.json"
+      - "eas.json"
+      - "package.json"
+      - "package-lock.json"
+      - "tsconfig.json"
+      - ".github/workflows/android-apk.yml"
   workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: android-apk-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-apk:
-    name: Build Android APK
+    name: Validate and build Android APK
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 45
     steps:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20.19.x"
+          node-version: "20"
+          cache: npm
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
@@ -34,8 +52,10 @@ jobs:
           java-version: "17"
       - name: Install dependencies
         run: npm install --no-audit --no-fund
-      - name: Check Expo SDK dependency versions
+      - name: Check Expo dependencies
         run: npx expo install --check
+      - name: TypeScript check
+        run: npm run typecheck
       - name: Generate native Android project
         run: npx expo prebuild --platform android --no-install
       - name: Build release APK
@@ -44,7 +64,7 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: haroofi-al-marah-android-apk
+          name: maze-adventure-android-apk
           path: android/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
           retention-days: 14
