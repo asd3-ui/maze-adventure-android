@@ -35,6 +35,9 @@ export default function App() {
   const [seconds, setSeconds] = useState(0);
   const [hint, setHint] = useState<Point[]>([]);
   const [enemies, setEnemies] = useState<Enemy[]>([]);
+  const [gems, setGems] = useState<Point[]>([]);
+  const [shieldPickup, setShieldPickup] = useState<Point | null>(null);
+  const [shieldCharges, setShieldCharges] = useState(0);
   const [result, setResult] = useState<'won' | 'lost' | null>(null);
   const [score, setScore] = useState(0);
 
@@ -102,6 +105,9 @@ export default function App() {
     setSeconds(0);
     setHint(levelData.hint);
     setEnemies(levelData.enemies);
+    setGems(levelData.gems);
+    setShieldPickup(levelData.shieldPickup);
+    setShieldCharges(0);
     setResult(null);
     setScreen('playing');
     setScore(0);
@@ -174,7 +180,7 @@ export default function App() {
     }
 
     const nextPlayer = { x: nextX, y: nextY };
-    const hitEnemy = enemies.some((enemy) => enemy.x === nextX && enemy.y === nextY);
+    const hitEnemies = enemies.filter((enemy) => enemy.x === nextX && enemy.y === nextY);
 
     setPlayer(nextPlayer);
     setMoves((value) => value + 1);
@@ -182,12 +188,32 @@ export default function App() {
     void playSound('move');
     void triggerHaptics('light');
 
+    const foundGem = gems.some((gem) => gem.x === nextX && gem.y === nextY);
+    if (foundGem) {
+      setGems((previous) => previous.filter((gem) => gem.x !== nextX || gem.y !== nextY));
+      setScore((previous) => previous + 50);
+      void triggerHaptics('medium');
+    }
+
+    if (shieldPickup && shieldPickup.x === nextX && shieldPickup.y === nextY) {
+      setShieldPickup(null);
+      setShieldCharges((previous) => previous + 1);
+      setScore((previous) => previous + 25);
+      void triggerHaptics('medium');
+    }
+
     if (nextX === goal.x && nextY === goal.y) {
       finishRound('won');
       return;
     }
 
-    if (hitEnemy) {
+    if (hitEnemies.length > 0) {
+      if (shieldCharges > 0) {
+        setShieldCharges((previous) => Math.max(0, previous - 1));
+        setEnemies((previous) => previous.filter((enemy) => enemy.x !== nextX || enemy.y !== nextY));
+        setScore((previous) => previous + 100);
+        return;
+      }
       finishRound('lost');
     }
   };
@@ -211,7 +237,7 @@ export default function App() {
 
     const timer = setInterval(() => {
       setEnemies((previous) => advanceEnemies(maze, previous, player, currentLevel, moves + seconds + previous.length));
-    }, 950);
+    }, Math.max(1000, 1650 - currentLevel * 22));
 
     return () => clearInterval(timer);
   }, [screen, maze, player, currentLevel, moves, seconds]);
@@ -222,10 +248,16 @@ export default function App() {
     }
 
     const collided = enemies.some((enemy) => enemy.x === player.x && enemy.y === player.y);
-    if (collided) {
-      finishRound('lost');
+    if (!collided) return;
+    if (shieldCharges > 0) {
+      setShieldCharges((previous) => Math.max(0, previous - 1));
+      setEnemies((previous) => previous.filter((enemy) => enemy.x !== player.x || enemy.y !== player.y));
+      setScore((previous) => previous + 100);
+      void triggerHaptics('heavy');
+      return;
     }
-  }, [screen, enemies, player]);
+    finishRound('lost');
+  }, [screen, enemies, player, shieldCharges]);
 
   if (screen === 'settings') {
     return (
@@ -338,7 +370,12 @@ export default function App() {
           </View>
         ) : null}
 
-        <MazeBoard maze={maze} player={player} goal={goal} enemies={enemies} hint={hint} theme={theme} />
+        <View style={[styles.legend, { backgroundColor: theme.panel }]}>
+          <Text style={[styles.legendText, { color: theme.fg }]}>💎 +50</Text>
+          <Text style={[styles.legendText, { color: theme.fg }]}>🛡️ حماية: {shieldCharges}</Text>
+          <Text style={[styles.legendText, { color: theme.secondary }]}>اعثر على طريق بديل!</Text>
+        </View>
+        <MazeBoard maze={maze} player={player} goal={goal} enemies={enemies} hint={hint} theme={theme} gems={gems} shieldPickup={shieldPickup} />
 
         <View style={[styles.controls, { backgroundColor: theme.panel }]}>
           <View style={styles.arrowPad}>
@@ -401,6 +438,16 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '800',
   },
+  legend: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 6,
+    marginBottom: 8,
+    borderRadius: 12,
+  },
+  legendText: { fontSize: 11, fontWeight: '800' },
   bossStatus: {
     borderRadius: 14,
     borderWidth: 1,

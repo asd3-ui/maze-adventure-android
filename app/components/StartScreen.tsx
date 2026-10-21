@@ -17,9 +17,9 @@ export function StartScreen({ theme, unlocked, currentLevel, onStart, onSettings
   return (
     <ScrollView contentContainerStyle={[styles.container, { backgroundColor: theme.bg }]}>
       <View style={[styles.card, { backgroundColor: theme.panel }]}>
-        <Text style={[styles.logo, { color: theme.primary }]}>🧭</Text>
-        <Text style={[styles.title, { color: theme.fg }]}>Maze Adventure</Text>
-        <Text style={[styles.subtitle, { color: theme.secondary }]}>مرحباً! اختر مستوى، اجتز المتاهة، واحتفظ بالتقدم على هذا الجهاز.</Text>
+        <Text style={[styles.logo, { color: theme.primary }]}>🗝️</Text>
+        <Text style={[styles.title, { color: theme.fg }]}>متاهات المغامرة</Text>
+        <Text style={[styles.subtitle, { color: theme.secondary }]}>اهرب من الوحوش، اجمع الجواهر، والتقط الدرع السحري قبل الوصول إلى بوابة النجاة!</Text>
 
         <Pressable onPress={onStart} style={[styles.primaryButton, { backgroundColor: theme.primary }]}>
           <Text style={[styles.primaryText, { color: '#0d1426' }]}>ابدأ اللعب</Text>

@@ -11,7 +11,8 @@
       "package": "com.asd3ui.mazeadventure",
       "versionCode": 1,
       "adaptiveIcon": {
-        "backgroundColor": "#10182d"
+        "backgroundColor": "#10182d",
+        "foregroundImage": "./assets/images/icon.png"
       }
     },
     "plugins": [
@@ -19,6 +20,10 @@
     ],
     "experiments": {
       "typedRoutes": false
+    },
+    "icon": "./assets/images/icon.png",
+    "ios": {
+      "icon": "./assets/images/icon.png"
     }
   }
 }
