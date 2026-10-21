@@ -1,4 +1,4 @@
-import type { BossAttackPhase, Enemy, EnemyKind, LevelConfig, Point } from './types';
+import type { BossAttackPhase, Direction, Enemy, EnemyKind, LevelConfig, Point } from './types';
 
 export const TOTAL_LEVELS = 25;
 
@@ -211,7 +211,7 @@ function getWalkableNeighbors(maze: number[][], point: Point) {
   });
 }
 
-function getDirectionFromDelta(dx: number, dy: number) {
+function getDirectionFromDelta(dx: number, dy: number): Direction {
   if (dx === 1 && dy === 0) return 'right';
   if (dx === -1 && dy === 0) return 'left';
   if (dy === -1) return 'up';
@@ -407,7 +407,7 @@ export function advanceEnemies(
       const candidates = [] as Point[];
       for (let y = 1; y < maze.length - 1; y += 1) {
         for (let x = 1; x < maze.length - 1; x += 1) {
-          if (maze[y][x] === 0 && !(x === 1 && y === 1)) {
+          if (maze[y][x] === 0 && !(x === 1 && y === 1) && (Math.abs(x - player.x) + Math.abs(y - player.y) > 2)) {
             candidates.push({ x, y });
           }
         }
