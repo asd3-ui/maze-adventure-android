@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import type { Enemy, MazeTheme, Point } from './types';
 
@@ -10,11 +10,14 @@ type MazeBoardProps = {
   enemies: Enemy[];
   hint: Point[];
   theme: MazeTheme;
+  gems?: Point[];
+  shieldPickup?: Point | null;
 };
 
-export function MazeBoard({ maze, player, goal, enemies, hint, theme }: MazeBoardProps) {
+export function MazeBoard({ maze, player, goal, enemies, hint, theme, gems = [], shieldPickup = null }: MazeBoardProps) {
   const enemySet = useMemo(() => new Set(enemies.map((enemy) => `${enemy.x},${enemy.y}`)), [enemies]);
   const hintSet = useMemo(() => new Set(hint.map((cell) => `${cell.x},${cell.y}`)), [hint]);
+  const gemSet = useMemo(() => new Set(gems.map((cell) => `${cell.x},${cell.y}`)), [gems]);
   const cellSize = Math.max(10, Math.min(16, 320 / maze.length));
 
   return (
@@ -22,14 +25,17 @@ export function MazeBoard({ maze, player, goal, enemies, hint, theme }: MazeBoar
       {maze.map((row, y) => (
         <View key={`row-${y}`} style={styles.row}>
           {row.map((cell, x) => {
+            const key = `${x},${y}`;
             const isPlayer = player.x === x && player.y === y;
             const isGoal = goal.x === x && goal.y === y;
-            const isEnemy = enemySet.has(`${x},${y}`);
-            const isHint = hintSet.has(`${x},${y}`) && !isPlayer && !isGoal && !isEnemy && cell === 0;
+            const isEnemy = enemySet.has(key);
+            const isHint = hintSet.has(key) && !isPlayer && !isGoal && !isEnemy && cell === 0;
+            const isGem = gemSet.has(key) && !isPlayer && !isEnemy;
+            const isShield = shieldPickup?.x === x && shieldPickup?.y === y && !isPlayer && !isEnemy;
 
             return (
               <View
-                key={`${x}-${y}`}
+                key={key}
                 style={[
                   styles.cell,
                   {
@@ -41,9 +47,11 @@ export function MazeBoard({ maze, player, goal, enemies, hint, theme }: MazeBoar
                 ]}
               >
                 {isHint && <View style={[styles.hintDot, { backgroundColor: theme.accent }]} />}
-                {isGoal && <View style={[styles.goal, { backgroundColor: theme.goal }]} />}
-                {isEnemy && <View style={[styles.enemy, { backgroundColor: theme.enemy }]} />}
-                {isPlayer && <View style={[styles.player, { backgroundColor: theme.player }]} />}
+                {isGem && <Text style={[styles.pickup, { fontSize: Math.max(8, cellSize * 0.75) }]}>💎</Text>}
+                {isShield && <Text style={[styles.pickup, { fontSize: Math.max(8, cellSize * 0.75) }]}>🛡️</Text>}
+                {isGoal && <Text style={[styles.marker, { fontSize: Math.max(9, cellSize * 0.8) }]}>🚪</Text>}
+                {isEnemy && <Text style={[styles.marker, { fontSize: Math.max(9, cellSize * 0.8) }]}>{enemies.find((enemy) => enemy.x === x && enemy.y === y)?.kind === 'boss' ? '👹' : '👾'}</Text>}
+                {isPlayer && <Text style={[styles.marker, { fontSize: Math.max(9, cellSize * 0.8) }]}>🧙</Text>}
               </View>
             );
           })}
@@ -65,9 +73,7 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 8,
   },
-  row: {
-    flexDirection: 'row',
-  },
+  row: { flexDirection: 'row' },
   cell: {
     borderWidth: 1,
     justifyContent: 'center',
@@ -75,31 +81,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     margin: 1,
   },
-  hintDot: {
-    width: 5,
-    height: 5,
-    borderRadius: 99,
-    opacity: 0.8,
-  },
-  goal: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    borderWidth: 2,
-    borderColor: '#ffffff',
-  },
-  enemy: {
-    width: 10,
-    height: 10,
-    borderRadius: 99,
-    borderWidth: 2,
-    borderColor: '#ffffff',
-  },
-  player: {
-    width: 12,
-    height: 12,
-    borderRadius: 99,
-    borderWidth: 2,
-    borderColor: '#ffffff',
-  },
+  hintDot: { width: 5, height: 5, borderRadius: 99, opacity: 0.8 },
+  pickup: { textAlign: 'center' },
+  marker: { textAlign: 'center', lineHeight: 15 },
 });
