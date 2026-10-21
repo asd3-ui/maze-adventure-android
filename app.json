@@ -1,0 +1,24 @@
+{
+  "expo": {
+    "name": "متاهات المغامرة",
+    "slug": "maze-adventure",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "scheme": "mazeadventure",
+    "newArchEnabled": true,
+    "android": {
+      "package": "com.asd3ui.mazeadventure",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "backgroundColor": "#10182d"
+      }
+    },
+    "plugins": [
+      "expo-router"
+    ],
+    "experiments": {
+      "typedRoutes": false
+    }
+  }
+}
