@@ -25,6 +25,19 @@ const DEFAULT_PROGRESS: ProgressState = {
   bombs: 0,
 };
 
+const BIOME_PALETTES = [
+  { bg: '#10231b', panel: '#19382a', surface: '#24513b', fg: '#f0fff4', primary: '#86efac', accent: '#facc15', wall: '#315b42', floor: '#132b20', goal: '#4ade80', player: '#bbf7d0', enemy: '#fb7185', secondary: '#a7cdb3' },
+  { bg: '#2a160b', panel: '#48240e', surface: '#653512', fg: '#fff7ed', primary: '#fdba74', accent: '#fbbf24', wall: '#82471d', floor: '#301a0d', goal: '#facc15', player: '#ffedd5', enemy: '#ef4444', secondary: '#e8b98e' },
+  { bg: '#101f38', panel: '#1b3154', surface: '#29466f', fg: '#eff6ff', primary: '#93c5fd', accent: '#c4b5fd', wall: '#38567e', floor: '#132642', goal: '#67e8f9', player: '#dbeafe', enemy: '#fda4af', secondary: '#abc3e7' },
+  { bg: '#21152f', panel: '#38234d', surface: '#4c3068', fg: '#faf5ff', primary: '#d8b4fe', accent: '#f0abfc', wall: '#62417d', floor: '#291a3b', goal: '#a7f3d0', player: '#f3e8ff', enemy: '#fb7185', secondary: '#cbb4df' },
+  { bg: '#102a2d', panel: '#194247', surface: '#235960', fg: '#ecfeff', primary: '#67e8f9', accent: '#5eead4', wall: '#2c6970', floor: '#123438', goal: '#5eead4', player: '#cffafe', enemy: '#fda4af', secondary: '#9ccfd2' },
+  { bg: '#321515', panel: '#501e1e', surface: '#702828', fg: '#fff1f2', primary: '#fca5a5', accent: '#fdba74', wall: '#873535', floor: '#3a1919', goal: '#fde047', player: '#ffe4e6', enemy: '#fb923c', secondary: '#e7b0a9' },
+  { bg: '#20261a', panel: '#343d23', surface: '#4a5630', fg: '#f7fee7', primary: '#bef264', accent: '#facc15', wall: '#5e6a3a', floor: '#262d1c', goal: '#a3e635', player: '#ecfccb', enemy: '#f87171', secondary: '#c5d3a2' },
+  { bg: '#251b12', panel: '#413021', surface: '#5a422b', fg: '#fffbeb', primary: '#fcd34d', accent: '#f9a8d4', wall: '#765536', floor: '#2f2317', goal: '#a7f3d0', player: '#fef3c7', enemy: '#f87171', secondary: '#d6bd9c' },
+  { bg: '#161b35', panel: '#252d50', surface: '#333d68', fg: '#eef2ff', primary: '#a5b4fc', accent: '#67e8f9', wall: '#454f7d', floor: '#1a2140', goal: '#6ee7b7', player: '#e0e7ff', enemy: '#fda4af', secondary: '#b2bde4' },
+  { bg: '#30142b', panel: '#4b1f41', surface: '#652a56', fg: '#fdf2f8', primary: '#f9a8d4', accent: '#c4b5fd', wall: '#80376c', floor: '#38182f', goal: '#86efac', player: '#fce7f3', enemy: '#fca5a5', secondary: '#dfb2d1' },
+] as const;
+
 export default function App() {
   const [screen, setScreen] = useState<ScreenMode>('start');
   const [shopReturnScreen, setShopReturnScreen] = useState<ScreenMode>('start');
@@ -49,7 +62,8 @@ export default function App() {
     const selected = LEVEL_THEMES.find((entry) => entry.id === themeId) ?? LEVEL_THEMES[0];
     if (screen === 'start' || screen === 'settings' || screen === 'shop') return selected;
     const biome = LEVEL_THEMES[(currentLevel - 1) % LEVEL_THEMES.length];
-    return { ...biome, id: selected.id, name: LEVEL_ENVIRONMENTS[(currentLevel - 1) % LEVEL_ENVIRONMENTS.length] };
+    const palette = BIOME_PALETTES[(currentLevel - 1) % BIOME_PALETTES.length];
+    return { ...biome, ...palette, id: selected.id, name: LEVEL_ENVIRONMENTS[(currentLevel - 1) % LEVEL_ENVIRONMENTS.length] };
   }, [themeId, currentLevel, screen]);
 
   const bossEnemy = enemies.find((enemy) => enemy.kind === 'boss') ?? null;
