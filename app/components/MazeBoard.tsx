@@ -1,4 +1,4 @@
-import type { Enemy, EnemyKind, LevelConfig, Point } from './types';
+import type { BossAttackPhase, Enemy, EnemyKind, LevelConfig, Point } from './types';
 
 export const TOTAL_LEVELS = 25;
 
@@ -234,6 +234,11 @@ export function chooseEnemyKind(level: number, index: number): EnemyKind {
   return pool[(index + level) % pool.length];
 }
 
+export function getBossPhase(turn: number, index: number): BossAttackPhase {
+  const phases: BossAttackPhase[] = ['charge', 'pulse', 'dash', 'summon'];
+  return phases[(turn + index) % phases.length];
+}
+
 export function buildLevel(level: number) {
   const config = getLevelConfig(level);
   const size = config.size;
@@ -254,13 +259,16 @@ export function buildLevel(level: number) {
   for (let index = 0; index < config.enemyCount; index += 1) {
     const cell = cells[(index * 11 + level * 7) % Math.max(cells.length, 1)] ?? { x: 2, y: 2 };
     const kind = chooseEnemyKind(level, index);
+    const isBoss = kind === 'boss';
     enemies.push({
       ...cell,
       id: `enemy-${level}-${index}`,
       kind,
       direction: 'right',
       speed: config.enemySpeed,
-      hp: kind === 'boss' ? 3 : 1,
+      hp: isBoss ? 5 : 1,
+      maxHp: isBoss ? 5 : 1,
+      phase: isBoss ? 'charge' : undefined,
     });
   }
 
@@ -289,6 +297,68 @@ export function advanceEnemies(
 
     if (!walkable.length) {
       return enemy;
+    }
+
+    if (enemy.kind === 'boss') {
+      const phase = getBossPhase(turn, index);
+      const base: Enemy = {
+        ...enemy,
+        phase,
+      };
+
+      if (phase === 'charge') {
+        const step = getNearestStepToward(maze, enemy, player, 2) ?? {
+          x: enemy.x,
+          y: enemy.y,
+          direction: enemy.direction,
+        };
+        return {
+          ...base,
+          x: step.x,
+          y: step.y,
+          direction: step.direction,
+        };
+      }
+
+      if (phase === 'pulse') {
+        const candidate = walkable[Math.floor(rng * walkable.length)];
+        return {
+          ...base,
+          x: enemy.x + (candidate?.x ?? 0),
+          y: enemy.y + (candidate?.y ?? 0),
+          direction: candidate?.direction ?? enemy.direction,
+        };
+      }
+
+      if (phase === 'dash') {
+        const step = getNearestStepToward(maze, enemy, player, 3) ?? {
+          x: enemy.x,
+          y: enemy.y,
+          direction: enemy.direction,
+        };
+        return {
+          ...base,
+          x: step.x,
+          y: step.y,
+          direction: step.direction,
+        };
+      }
+
+      const candidates = [] as Point[];
+      for (let y = 1; y < maze.length - 1; y += 1) {
+        for (let x = 1; x < maze.length - 1; x += 1) {
+          if (maze[y][x] === 0 && !(x === 1 && y === 1)) {
+            candidates.push({ x, y });
+          }
+        }
+      }
+      const target = candidates[Math.floor(rng * candidates.length)] ?? { x: enemy.x, y: enemy.y };
+      return {
+        ...base,
+        x: target.x,
+        y: target.y,
+        direction: getDirectionFromDelta(target.x - enemy.x, target.y - enemy.y),
+      };
     }
 
     if (enemy.kind === 'phantom') {
@@ -348,22 +418,6 @@ export function advanceEnemies(
         x: nx,
         y: ny,
         direction: chosen,
-      };
-    }
-
-    if (enemy.kind === 'boss') {
-      const pattern = Math.floor(rng * 2);
-      const target = pattern === 0 ? { x: player.x, y: enemy.y } : { x: enemy.x, y: player.y };
-      const step = getNearestStepToward(maze, enemy, target, limit + 1);
-      if (!step) {
-        return enemy;
-      }
-      return {
-        ...enemy,
-        x: step.x,
-        y: step.y,
-        direction: step.direction,
-        hp: enemy.hp ?? 3,
       };
     }
 

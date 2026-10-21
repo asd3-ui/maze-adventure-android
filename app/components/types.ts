@@ -4,12 +4,16 @@ export type Direction = 'up' | 'down' | 'left' | 'right';
 
 export type EnemyKind = 'walker' | 'hunter' | 'spinner' | 'phantom' | 'boss';
 
+export type BossAttackPhase = 'charge' | 'pulse' | 'dash' | 'summon';
+
 export type Enemy = Point & {
   id: string;
   kind: EnemyKind;
   direction: Direction;
   speed: number;
   hp?: number;
+  maxHp?: number;
+  phase?: BossAttackPhase;
 };
 
 export type MazeTheme = {

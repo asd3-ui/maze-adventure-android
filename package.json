@@ -50,6 +50,7 @@ export default function App() {
     [themeId]
   );
 
+  const bossEnemy = enemies.find((enemy) => enemy.kind === 'boss') ?? null;
   const screenSlide = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -338,6 +339,24 @@ export default function App() {
           <Text style={[styles.topBarText, { color: theme.accent }]}>Score {score}</Text>
         </View>
 
+        {bossEnemy ? (
+          <View style={[styles.bossStatus, { backgroundColor: theme.panel, borderColor: theme.primary }]}>
+            <Text style={[styles.bossText, { color: theme.fg }]}>Boss</Text>
+            <Text style={[styles.bossPhase, { color: theme.accent }]}>{bossEnemy.phase ?? 'charge'}</Text>
+            <View style={[styles.bossBar, { backgroundColor: theme.surface }]}>
+              <View
+                style={[
+                  styles.bossBarFill,
+                  {
+                    width: `${((bossEnemy.hp ?? bossEnemy.maxHp ?? 1) / (bossEnemy.maxHp ?? 1)) * 100}%`,
+                    backgroundColor: '#ef4444',
+                  },
+                ]}
+              />
+            </View>
+          </View>
+        ) : null}
+
         <MazeBoard maze={maze} player={player} goal={goal} enemies={enemies} hint={hint} theme={theme} />
 
         <View style={[styles.controls, { backgroundColor: theme.panel }]}>
@@ -401,6 +420,33 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '800',
   },
+  bossStatus: {
+    borderRadius: 14,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    marginBottom: 12,
+  },
+  bossText: {
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  bossPhase: {
+    fontSize: 10,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    marginTop: 4,
+  },
+  bossBar: {
+    height: 10,
+    marginTop: 8,
+    borderRadius: 99,
+    overflow: 'hidden',
+  },
+  bossBarFill: {
+    height: '100%',
+    borderRadius: 99,
+  },
   controls: {
     borderRadius: 18,
     marginTop: 16,
@@ -443,5 +489,3 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
 });
-
-
