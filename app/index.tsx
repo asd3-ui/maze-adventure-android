@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Audio } from 'expo-av';
 import * as Haptics from 'expo-haptics';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -14,12 +13,6 @@ import { LEVEL_THEMES, TOTAL_LEVELS, advanceEnemies, buildLevel, isWalkable } fr
 import type { Enemy, Point, ProgressState, ScreenMode } from './components/types';
 
 const STORAGE_KEY = 'maze-adventure-progress-v1';
-const SOUND_LIBRARY = {
-  move: require('../assets/audio/move.wav'),
-  win: require('../assets/audio/win.wav'),
-  lose: require('../assets/audio/lose.wav'),
-} as const;
-
 const DEFAULT_PROGRESS: ProgressState = {
   unlocked: 1,
   bestTimes: {},
@@ -114,21 +107,8 @@ export default function App() {
     setScore(0);
   };
 
-  const playSound = async (type: keyof typeof SOUND_LIBRARY) => {
-    if (!progress.soundEnabled) {
-      return;
-    }
-
-    try {
-      const sound = new Audio.Sound();
-      await sound.loadAsync(SOUND_LIBRARY[type]);
-      await sound.playAsync();
-      setTimeout(() => {
-        sound.unloadAsync().catch(() => undefined);
-      }, 800);
-    } catch {
-      // Ignore audio failures; app remains playable.
-    }
+  const playSound = async (_type: 'move' | 'win' | 'lose') => {
+    // Sound assets are not present in the repository; keep gameplay independent of optional audio.
   };
 
   const triggerHaptics = async (mode: 'light' | 'medium' | 'heavy') => {
