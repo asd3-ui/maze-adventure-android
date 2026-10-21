@@ -133,6 +133,26 @@ export function generateMaze(n: number, seed: number): number[][] {
     stack.push(next);
   }
 
+  // Open extra walls to create loops and multiple escape routes instead of a single forced corridor.
+  const loopCandidates: Point[] = [];
+  for (let y = 1; y < n - 1; y += 1) {
+    for (let x = 1; x < n - 1; x += 1) {
+      if (grid[y][x] !== 1) continue;
+      const horizontal = grid[y][x - 1] === 0 && grid[y][x + 1] === 0;
+      const vertical = grid[y - 1][x] === 0 && grid[y + 1][x] === 0;
+      if (horizontal || vertical) loopCandidates.push({ x, y });
+    }
+  }
+  for (let i = loopCandidates.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(random() * (i + 1));
+    [loopCandidates[i], loopCandidates[j]] = [loopCandidates[j], loopCandidates[i]];
+  }
+  const loopCount = Math.min(loopCandidates.length, Math.max(3, Math.floor(n * 0.55)));
+  for (let i = 0; i < loopCount; i += 1) {
+    const wall = loopCandidates[i];
+    grid[wall.y][wall.x] = 0;
+  }
+
   grid[n - 2][n - 2] = 0;
   return grid;
 }
@@ -200,27 +220,46 @@ function getDirectionFromDelta(dx: number, dy: number) {
 }
 
 function getNearestStepToward(maze: number[][], enemy: Enemy, target: Point, stepCount = 1) {
-  const options = getWalkableNeighbors(maze, enemy);
-  if (!options.length) {
-    return null;
+  // Use a real maze path so hunters can navigate turns and corridors without teleporting through walls.
+  const queue: Point[] = [{ x: enemy.x, y: enemy.y }];
+  const previous = new Map<string, Point | null>([[`${enemy.x},${enemy.y}`, null]]);
+  const targetKey = `${target.x},${target.y}`;
+
+  while (queue.length > 0 && !previous.has(targetKey)) {
+    const current = queue.shift()!;
+    for (const direction of DIRECTIONS) {
+      const next = { x: current.x + direction.x, y: current.y + direction.y };
+      const key = `${next.x},${next.y}`;
+      if (!isWalkable(maze, next.x, next.y) || (next.x === 1 && next.y === 1) || previous.has(key)) continue;
+      previous.set(key, current);
+      queue.push(next);
+    }
   }
 
-  const scored = options
-    .map((option) => ({
-      ...option,
-      distance: Math.abs(target.x - (enemy.x + option.x)) + Math.abs(target.y - (enemy.y + option.y)),
-    }))
-    .sort((a, b) => a.distance - b.distance);
-
-  const chosen = scored[0];
-  if (!chosen) {
-    return null;
+  if (!previous.has(targetKey)) {
+    const options = getWalkableNeighbors(maze, enemy);
+    const fallback = options[0];
+    return fallback ? {
+      x: enemy.x + fallback.x,
+      y: enemy.y + fallback.y,
+      direction: fallback.direction,
+      stepCount,
+    } : null;
   }
 
+  const path: Point[] = [];
+  let cursor: Point | null = target;
+  while (cursor) {
+    path.push(cursor);
+    cursor = previous.get(`${cursor.x},${cursor.y}`) ?? null;
+  }
+  path.reverse();
+  const next = path[1];
+  if (!next) return null;
   return {
-    x: enemy.x + chosen.x,
-    y: enemy.y + chosen.y,
-    direction: chosen.direction,
+    x: next.x,
+    y: next.y,
+    direction: getDirectionFromDelta(next.x - enemy.x, next.y - enemy.y),
     stepCount,
   };
 }
@@ -255,9 +294,19 @@ export function buildLevel(level: number) {
     }
   }
 
+  // Keep enemies away from the spawn and exit so the player always gets room to react.
+  const safeEnemyCells = cells.filter((cell) =>
+    Math.abs(cell.x - player.x) + Math.abs(cell.y - player.y) >= 5 &&
+    Math.abs(cell.x - goal.x) + Math.abs(cell.y - goal.y) >= 3
+  );
   const enemies: Enemy[] = [];
+  const occupied = new Set<string>();
   for (let index = 0; index < config.enemyCount; index += 1) {
-    const cell = cells[(index * 11 + level * 7) % Math.max(cells.length, 1)] ?? { x: 2, y: 2 };
+    const available = safeEnemyCells.filter((cell) => !occupied.has(`${cell.x},${cell.y}`));
+    if (!available.length) break;
+    const chosenIndex = Math.floor(seededRandom(level * 101 + index * 29 + 7) * available.length);
+    const cell = available[chosenIndex];
+    occupied.add(`${cell.x},${cell.y}`);
     const kind = chooseEnemyKind(level, index);
     const isBoss = kind === 'boss';
     enemies.push({
@@ -272,11 +321,22 @@ export function buildLevel(level: number) {
     });
   }
 
+  const pickupCells = cells.filter((cell) =>
+    !occupied.has(`${cell.x},${cell.y}`) &&
+    Math.abs(cell.x - player.x) + Math.abs(cell.y - player.y) >= 3 &&
+    Math.abs(cell.x - goal.x) + Math.abs(cell.y - goal.y) >= 2
+  );
+  const gems = pickupCells.filter((_, index) => index % Math.max(2, Math.floor(pickupCells.length / 5)) === 0).slice(0, Math.min(5, 2 + Math.floor(level / 5)));
+  const gemKeys = new Set(gems.map((cell) => `${cell.x},${cell.y}`));
+  const shieldCell = pickupCells.find((cell) => !gemKeys.has(`${cell.x},${cell.y}`)) ?? null;
+
   return {
     maze,
     player,
     goal,
     enemies,
+    gems,
+    shieldPickup: shieldCell,
     hint: findShortestPath(maze),
     config,
   };
