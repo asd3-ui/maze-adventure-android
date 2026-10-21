@@ -1,98 +1,144 @@
 import React from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { LevelSelector } from './LevelSelector';
 import type { MazeTheme } from './types';
 
-type StartScreenProps = {
+type SettingsScreenProps = {
   theme: MazeTheme;
-  unlocked: number;
-  currentLevel: number;
-  onStart: () => void;
-  onSettings: () => void;
-  onSelectLevel: (level: number) => void;
+  soundEnabled: boolean;
+  vibrationEnabled: boolean;
+  availableThemes: readonly MazeTheme[];
+  activeThemeId: string;
+  onToggleSound: () => void;
+  onToggleVibration: () => void;
+  onSelectTheme: (themeId: string) => void;
+  onBack: () => void;
 };
 
-export function StartScreen({ theme, unlocked, currentLevel, onStart, onSettings, onSelectLevel }: StartScreenProps) {
+export function SettingsScreen({
+  theme,
+  soundEnabled,
+  vibrationEnabled,
+  availableThemes,
+  activeThemeId,
+  onToggleSound,
+  onToggleVibration,
+  onSelectTheme,
+  onBack,
+}: SettingsScreenProps) {
   return (
-    <ScrollView contentContainerStyle={[styles.container, { backgroundColor: theme.bg }]}>
+    <View style={[styles.container, { backgroundColor: theme.bg }]}>
       <View style={[styles.card, { backgroundColor: theme.panel }]}>
-        <Text style={[styles.logo, { color: theme.primary }]}>🧭</Text>
-        <Text style={[styles.title, { color: theme.fg }]}>Maze Adventure</Text>
-        <Text style={[styles.subtitle, { color: theme.secondary }]}>مرحباً! اختر مستوى، اجتز المتاهة، واحتفظ بالتقدم على هذا الجهاز.</Text>
+        <Text style={[styles.title, { color: theme.fg }]}>الإعدادات</Text>
 
-        <Pressable onPress={onStart} style={[styles.primaryButton, { backgroundColor: theme.primary }]}>
-          <Text style={[styles.primaryText, { color: '#0d1426' }]}>ابدأ اللعب</Text>
+        <Pressable onPress={onToggleSound} style={[styles.row, { borderColor: theme.secondary }]}>
+          <Text style={[styles.rowText, { color: theme.fg }]}>{soundEnabled ? 'الصوت: مفعل' : 'الصوت: متوقف'}</Text>
+          <Text style={[styles.toggle, { color: theme.primary }]}>{soundEnabled ? 'ON' : 'OFF'}</Text>
         </Pressable>
 
-        <Pressable onPress={onSettings} style={[styles.secondaryButton, { borderColor: theme.primary }]}>
-          <Text style={[styles.secondaryText, { color: theme.primary }]}>الإعدادات</Text>
+        <Pressable onPress={onToggleVibration} style={[styles.row, { borderColor: theme.secondary }]}>
+          <Text style={[styles.rowText, { color: theme.fg }]}>{vibrationEnabled ? 'الاهتزاز: مفعل' : 'الاهتزاز: متوقف'}</Text>
+          <Text style={[styles.toggle, { color: theme.primary }]}>{vibrationEnabled ? 'ON' : 'OFF'}</Text>
         </Pressable>
 
-        <Text style={[styles.sectionTitle, { color: theme.fg }]}>اختيار المستوى</Text>
-        <LevelSelector selected={currentLevel} unlocked={unlocked} theme={theme} onSelect={onSelectLevel} />
+        <Text style={[styles.sectionTitle, { color: theme.fg }]}>الموضوع</Text>
+        <View style={styles.themeGrid}>
+          {availableThemes.map((entry) => (
+            <Pressable
+              key={entry.id}
+              onPress={() => onSelectTheme(entry.id)}
+              style={[
+                styles.themeButton,
+                {
+                  backgroundColor: activeThemeId === entry.id ? entry.primary : entry.panel,
+                  borderColor: activeThemeId === entry.id ? entry.primary : entry.secondary,
+                },
+              ]}
+            >
+              <Text style={[styles.themeLabel, { color: activeThemeId === entry.id ? '#0d1426' : entry.fg }]}>{entry.name}</Text>
+            </Pressable>
+          ))}
+        </View>
+
+        <Pressable onPress={onBack} style={[styles.backButton, { backgroundColor: theme.primary }]}>
+          <Text style={[styles.backText, { color: '#0d1426' }]}>العودة</Text>
+        </Pressable>
       </View>
-    </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flexGrow: 1,
+    flex: 1,
     justifyContent: 'center',
     padding: 20,
   },
   card: {
     borderRadius: 24,
-    padding: 22,
+    padding: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.2,
-    shadowRadius: 12,
+    shadowRadius: 10,
     elevation: 8,
   },
-  logo: {
-    fontSize: 36,
-    textAlign: 'center',
-  },
   title: {
-    fontSize: 30,
+    fontSize: 28,
     fontWeight: '900',
     textAlign: 'center',
-    marginTop: 6,
+    marginBottom: 16,
   },
-  subtitle: {
-    fontSize: 15,
-    textAlign: 'center',
-    lineHeight: 24,
-    marginTop: 8,
-    marginBottom: 18,
-  },
-  primaryButton: {
-    borderRadius: 14,
-    paddingVertical: 14,
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
     marginBottom: 12,
   },
-  primaryText: {
-    fontSize: 17,
-    fontWeight: '800',
-  },
-  secondaryButton: {
-    borderWidth: 1,
-    borderRadius: 14,
-    paddingVertical: 12,
-    alignItems: 'center',
-    marginBottom: 18,
-  },
-  secondaryText: {
-    fontSize: 15,
+  rowText: {
+    fontSize: 16,
     fontWeight: '700',
+  },
+  toggle: {
+    fontSize: 16,
+    fontWeight: '800',
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '800',
-    marginBottom: 12,
-    textAlign: 'center',
+    marginTop: 6,
+    marginBottom: 10,
+  },
+  themeGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+  },
+  themeButton: {
+    minWidth: 120,
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    margin: 6,
+    alignItems: 'center',
+  },
+  themeLabel: {
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  backButton: {
+    marginTop: 18,
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  backText: {
+    fontSize: 16,
+    fontWeight: '800',
   },
 });
