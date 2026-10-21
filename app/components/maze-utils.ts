@@ -198,6 +198,32 @@ export function findShortestPath(maze: number[][]): Point[] {
   return path.reverse();
 }
 
+function findPathAvoidingCells(maze: number[][], start: Point, goal: Point, blocked: Set<string>): Point[] {
+  const queue: Point[] = [start];
+  const previous = new Map<string, Point | null>([[`${start.x},${start.y}`, null]]);
+  const goalKey = `${goal.x},${goal.y}`;
+
+  while (queue.length > 0 && !previous.has(goalKey)) {
+    const current = queue.shift()!;
+    for (const direction of DIRECTIONS) {
+      const next = { x: current.x + direction.x, y: current.y + direction.y };
+      const key = `${next.x},${next.y}`;
+      if (!isWalkable(maze, next.x, next.y) || blocked.has(key) || previous.has(key)) continue;
+      previous.set(key, current);
+      queue.push(next);
+    }
+  }
+
+  if (!previous.has(goalKey)) return [];
+  const path: Point[] = [];
+  let cursor: Point | null = goal;
+  while (cursor) {
+    path.push(cursor);
+    cursor = previous.get(`${cursor.x},${cursor.y}`) ?? null;
+  }
+  return path.reverse();
+}
+
 function seededRandom(seed: number) {
   const value = Math.sin(seed * 12.9898) * 43758.5453;
   return value - Math.floor(value);
@@ -321,6 +347,17 @@ export function buildLevel(level: number) {
     });
   }
 
+  // Guarantee a walkable route to the exit that does not pass through any enemy's starting tile.
+  while (enemies.length > 0 && findPathAvoidingCells(
+    maze,
+    player,
+    goal,
+    new Set(enemies.map((enemy) => `${enemy.x},${enemy.y}`))
+  ).length === 0) {
+    const removed = enemies.pop();
+    if (removed) occupied.delete(`${removed.x},${removed.y}`);
+  }
+
   const pickupCells = cells.filter((cell) =>
     !occupied.has(`${cell.x},${cell.y}`) &&
     Math.abs(cell.x - player.x) + Math.abs(cell.y - player.y) >= 3 &&
@@ -337,7 +374,7 @@ export function buildLevel(level: number) {
     enemies,
     gems,
     shieldPickup: shieldCell,
-    hint: findShortestPath(maze),
+    hint: findPathAvoidingCells(maze, player, goal, new Set(enemies.map((enemy) => `${enemy.x},${enemy.y}`))),
     config,
   };
 }
