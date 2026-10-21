@@ -27,6 +27,7 @@ const DEFAULT_PROGRESS: ProgressState = {
 
 export default function App() {
   const [screen, setScreen] = useState<ScreenMode>('start');
+  const [shopReturnScreen, setShopReturnScreen] = useState<ScreenMode>('start');
   const [currentLevel, setCurrentLevel] = useState(1);
   const [themeId, setThemeId] = useState(DEFAULT_PROGRESS.themeId);
   const [progress, setProgress] = useState<ProgressState>(DEFAULT_PROGRESS);
@@ -348,7 +349,7 @@ export default function App() {
               <Text style={[styles.actionText, { color: theme.fg }]}>💣 قنبلة صاعقة — 130 عملة</Text>
               <Text style={[styles.legendText, { color: theme.secondary }]}>المخزون: {progress.bombs ?? 0}</Text>
             </Pressable>
-            <Pressable onPress={() => setScreen('start')} style={[styles.actionButton, { backgroundColor: theme.primary, marginTop: 12 }]}>
+            <Pressable onPress={() => setScreen(shopReturnScreen)} style={[styles.actionButton, { backgroundColor: theme.primary, marginTop: 12 }]}>
               <Text style={[styles.actionText, { color: '#0d1426' }]}>العودة إلى اللعبة</Text>
             </Pressable>
           </View>
@@ -418,7 +419,7 @@ export default function App() {
             currentLevel={currentLevel}
             onStart={() => startLevel(currentLevel)}
             onSettings={() => setScreen('settings')}
-            onShop={() => setScreen('shop')}
+            onShop={() => { setShopReturnScreen('start'); setScreen('shop'); }}
             coins={progress.coins ?? 0}
             onSelectLevel={(level) => {
               if (level <= progress.unlocked) {
@@ -502,12 +503,12 @@ export default function App() {
             <Pressable onPress={useBomb} style={[styles.actionButton, { backgroundColor: theme.surface }]}>
               <Text style={[styles.actionText, { color: theme.fg }]}>💣 {progress.bombs ?? 0}</Text>
             </Pressable>
-            <Pressable onPress={() => setScreen('shop')} style={[styles.actionButton, { backgroundColor: theme.surface }]}>
+            <Pressable onPress={() => { setShopReturnScreen('playing'); setScreen('shop'); }} style={[styles.actionButton, { backgroundColor: theme.surface }]}>
               <Text style={[styles.actionText, { color: theme.fg }]}>المتجر</Text>
             </Pressable>
           </View>
           <View style={styles.actionRow}>
-            <Pressable onPress={() => startLevel(currentLevel) style={[styles.actionButton, { backgroundColor: theme.surface }]}>
+            <Pressable onPress={() => startLevel(currentLevel)} style={[styles.actionButton, { backgroundColor: theme.surface }]}>
               <Text style={[styles.actionText, { color: theme.fg }]}>إعادة</Text>
             </Pressable>
             <Pressable onPress={() => setScreen('start')} style={[styles.actionButton, { backgroundColor: theme.surface }]}>
