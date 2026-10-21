@@ -279,6 +279,7 @@ export default function App() {
         totalLevels={TOTAL_LEVELS}
         moves={moves}
         seconds={seconds}
+        score={score}
         onReplay={() => startLevel(currentLevel)}
         onNext={() => {
           const nextLevel = Math.min(TOTAL_LEVELS, currentLevel + 1);
