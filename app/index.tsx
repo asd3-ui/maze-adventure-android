@@ -48,6 +48,12 @@ export default function App() {
 
   const bossEnemy = enemies.find((enemy) => enemy.kind === 'boss') ?? null;
   const screenSlide = useRef(new Animated.Value(0)).current;
+  // Keep the chase timer stable while reading the latest player position on every tick.
+  // Including seconds/moves/player in the timer dependencies used to restart it before it fired.
+  const playerRef = useRef(player);
+  const turnRef = useRef(0);
+  playerRef.current = player;
+  turnRef.current = moves + seconds;
 
   useEffect(() => {
     Animated.timing(screenSlide, {
@@ -235,12 +241,22 @@ export default function App() {
       return;
     }
 
+    // Monsters keep moving even when the player pauses; hunters track the latest position
+    // and navigate through walkable corridors instead of getting stuck behind stale closures.
     const timer = setInterval(() => {
-      setEnemies((previous) => advanceEnemies(maze, previous, player, currentLevel, moves + seconds + previous.length));
-    }, Math.max(1000, 1650 - currentLevel * 22));
+      const target = playerRef.current;
+      const turn = turnRef.current;
+      setEnemies((previous) => advanceEnemies(
+        maze,
+        previous,
+        target,
+        currentLevel,
+        turn + previous.length,
+      ));
+    }, Math.max(700, 1450 - currentLevel * 28));
 
     return () => clearInterval(timer);
-  }, [screen, maze, player, currentLevel, moves, seconds]);
+  }, [screen, maze, currentLevel]);
 
   useEffect(() => {
     if (screen !== 'playing') {
