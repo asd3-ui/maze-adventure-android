@@ -18,10 +18,11 @@ export function MazeBoard({ maze, player, goal, enemies, hint, theme, gems = [],
   const enemySet = useMemo(() => new Set(enemies.map((enemy) => `${enemy.x},${enemy.y}`)), [enemies]);
   const hintSet = useMemo(() => new Set(hint.map((cell) => `${cell.x},${cell.y}`)), [hint]);
   const gemSet = useMemo(() => new Set(gems.map((cell) => `${cell.x},${cell.y}`)), [gems]);
-  const cellSize = Math.max(10, Math.min(16, 320 / maze.length));
+  const boardWidth = Math.max(maze[0]?.length ?? 0, maze.length);
+  const cellSize = Math.max(16, Math.min(24, 420 / boardWidth));
 
   return (
-    <View style={[styles.board, { backgroundColor: theme.panel, borderColor: theme.primary }]}>
+    <View style={[styles.board, { backgroundColor: theme.panel, borderColor: theme.primary, maxWidth: 420 }]}> 
       {maze.map((row, y) => (
         <View key={`row-${y}`} style={styles.row}>
           {row.map((cell, x) => {
