@@ -146,6 +146,7 @@ export default function App() {
     setGoal(levelData.goal);
     setMoves(0);
     setSeconds(0);
+    setTimeLeft(Math.max(60, 180 - Math.floor((safeLevel - 1) * 1.2)));
     setHint(levelData.hint);
     setEnemies(levelData.enemies);
     setGems(levelData.gems);
