@@ -49,7 +49,7 @@ export default function App() {
   const [player, setPlayer] = useState<Point>({ x: 1, y: 1 });
   const [goal, setGoal] = useState<Point>({ x: 1, y: 1 });
   const [moves, setMoves] = useState(0);
-  const [seconds, setSeconds] = useState(0);
+  const [seconds, setSeconds] = useState(0);\n  const [timeLeft, setTimeLeft] = useState(180);
   const [hint, setHint] = useState<Point[]>([]);
   const [enemies, setEnemies] = useState<Enemy[]>([]);
   const [gems, setGems] = useState<Point[]>([]);
@@ -310,6 +310,7 @@ export default function App() {
     }
   };
 
+  // Each level has a countdown. Higher levels receive less time (down to 60 seconds).
   useEffect(() => {
     if (screen !== 'playing') {
       return;
@@ -317,10 +318,17 @@ export default function App() {
 
     const timer = setInterval(() => {
       setSeconds((value) => value + 1);
+      setTimeLeft((value) => Math.max(0, value - 1));
     }, 1000);
 
     return () => clearInterval(timer);
   }, [screen]);
+
+  useEffect(() => {
+    if (screen === 'playing' && timeLeft <= 0) {
+      finishRound('lost');
+    }
+  }, [screen, timeLeft]);
 
   useEffect(() => {
     if (screen !== 'playing' || maze.length === 0) {
@@ -475,8 +483,8 @@ export default function App() {
         <View style={[styles.topBar, { backgroundColor: theme.panel }]}>
           <Text style={[styles.topBarText, { color: theme.fg }]}>{currentLevel}/100 · {LEVEL_ENVIRONMENTS[(currentLevel - 1) % LEVEL_ENVIRONMENTS.length]}</Text>
           <Text style={[styles.topBarText, { color: theme.secondary }]}>الحركات: {moves}</Text>
-          <Text style={[styles.topBarText, { color: theme.secondary }]}>
-            {String(Math.floor(seconds / 60)).padStart(2, '0')}:{String(seconds % 60).padStart(2, '0')}
+          <Text style={[styles.topBarText, { color: timeLeft <= 15 ? '#fb7185' : theme.secondary }]}>
+            ⏳ {String(Math.floor(timeLeft / 60)).padStart(2, '0')}:{String(timeLeft % 60).padStart(2, '0')}
           </Text>
           <Text style={[styles.topBarText, { color: theme.accent }]}>🪙 {progress.coins ?? 0} · {score}</Text>
         </View>
