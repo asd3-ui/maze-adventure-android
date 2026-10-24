@@ -49,7 +49,8 @@ export default function App() {
   const [player, setPlayer] = useState<Point>({ x: 1, y: 1 });
   const [goal, setGoal] = useState<Point>({ x: 1, y: 1 });
   const [moves, setMoves] = useState(0);
-  const [seconds, setSeconds] = useState(0);\n  const [timeLeft, setTimeLeft] = useState(180);
+  const [seconds, setSeconds] = useState(0);
+  const [timeLeft, setTimeLeft] = useState(180);
   const [hint, setHint] = useState<Point[]>([]);
   const [enemies, setEnemies] = useState<Enemy[]>([]);
   const [gems, setGems] = useState<Point[]>([]);
