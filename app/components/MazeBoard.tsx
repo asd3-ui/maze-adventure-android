@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Dimensions, StyleSheet, Text, View } from 'react-native';
 
 import type { Enemy, MazeTheme, Point } from './types';
 
@@ -19,10 +19,11 @@ export function MazeBoard({ maze, player, goal, enemies, hint, theme, gems = [],
   const hintSet = useMemo(() => new Set(hint.map((cell) => `${cell.x},${cell.y}`)), [hint]);
   const gemSet = useMemo(() => new Set(gems.map((cell) => `${cell.x},${cell.y}`)), [gems]);
   const boardWidth = Math.max(maze[0]?.length ?? 0, maze.length);
-  const cellSize = Math.max(16, Math.min(24, 420 / boardWidth));
+  const availableWidth = Dimensions.get('window').width - 24;
+  const cellSize = Math.max(16, Math.min(32, availableWidth / boardWidth - 1));
 
   return (
-    <View style={[styles.board, { backgroundColor: theme.panel, borderColor: theme.primary, maxWidth: 420 }]}> 
+    <View style={[styles.board, { backgroundColor: theme.panel, borderColor: theme.primary, maxWidth: availableWidth }]}> 
       {maze.map((row, y) => (
         <View key={`row-${y}`} style={styles.row}>
           {row.map((cell, x) => {
