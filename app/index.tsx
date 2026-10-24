@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, BackHandler, Pressable, StyleSheet, Text, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
+import { Audio } from 'expo-av';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { LevelSelector } from './components/LevelSelector';
@@ -186,6 +187,7 @@ export default function App() {
       setEnemies((previous) => previous.filter((enemy) => enemy.id !== target.id));
       setScore((previous) => previous + (target.kind === 'boss' ? 250 : 100));
     }
+    void playSound('attack');
     void triggerHaptics('heavy');
   };
 
@@ -201,11 +203,31 @@ export default function App() {
       return [];
     }));
     setScore((previous) => previous + affected.length * 80);
+    void playSound('attack');
     void triggerHaptics('heavy');
   };
 
-  const playSound = async (_type: 'move' | 'win' | 'lose') => {
-    // Sound assets are not present in the repository; keep gameplay independent of optional audio.
+  const playSound = async (type: 'move' | 'win' | 'lose' | 'gem' | 'attack' = 'move') => {
+    if (!progress.soundEnabled) return;
+    const soundUrls: Record<typeof type, string> = {
+      move: 'https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg',
+      win: 'https://actions.google.com/sounds/v1/ jingles/ winning.ogg',
+      lose: 'https://actions.google.com/sounds/v1/cartoon/cartoon_boing.ogg',
+      gem: 'https://actions.google.com/sounds/v1/cartoon/pop.ogg',
+      attack: 'https://actions.google.com/sounds/v1/impacts/crash.ogg',
+    };
+    let sound: Audio.Sound | undefined;
+    try {
+      const uri = soundUrls[type].replace(' ', '');
+      const loaded = await Audio.Sound.createAsync({ uri }, { shouldPlay: true, volume: 0.55 });
+      sound = loaded.sound;
+      sound.setOnPlaybackStatusUpdate((status) => {
+        if (status.isLoaded && status.didJustFinish) void sound?.unloadAsync();
+      });
+    } catch {
+      // Audio is optional: a network/audio failure must never interrupt gameplay.
+      try { await sound?.unloadAsync(); } catch {}
+    }
   };
 
   const triggerHaptics = async (mode: 'light' | 'medium' | 'heavy') => {
@@ -231,6 +253,7 @@ export default function App() {
     setScreen(outcome);
 
     if (outcome === 'won') {
+      void playSound('win');
       void playSound('win');
       void triggerHaptics('heavy');
 
@@ -285,6 +308,7 @@ export default function App() {
       setGems((previous) => previous.filter((gem) => gem.x !== nextX || gem.y !== nextY));
       setScore((previous) => previous + 50);
       setProgress((previous) => ({ ...previous, coins: (previous.coins ?? 0) + 10 + Math.floor(currentLevel / 10) }));
+      void playSound('gem');
       void triggerHaptics('medium');
     }
 
@@ -517,48 +541,30 @@ export default function App() {
         <MazeBoard maze={maze} player={player} goal={goal} enemies={enemies} hint={hint} theme={theme} gems={gems} shieldPickup={shieldPickup} />
 
         <View style={[styles.controls, { backgroundColor: theme.panel }]}>
-          <View style={styles.arrowPad}>
-            <View style={styles.middleRow}>
-              <View style={styles.arrowSpacer} />
-              <Pressable accessibilityLabel="التحرك إلى الأعلى" onPress={() => movePlayer(0, -1)} style={[styles.arrowButton, { backgroundColor: theme.surface }]}>
-                <Text style={[styles.arrowText, { color: theme.primary }]}>▲</Text>
-              </Pressable>
-              <View style={styles.arrowSpacer} />
-            </View>
-            <View style={styles.middleRow}>
-              <Pressable accessibilityLabel="التحرك إلى اليسار" onPress={() => movePlayer(-1, 0)} style={[styles.arrowButton, { backgroundColor: theme.surface }]}>
-                <Text style={[styles.arrowText, { color: theme.primary }]}>◀</Text>
-              </Pressable>
-              <Pressable accessibilityLabel="التحرك إلى الأسفل" onPress={() => movePlayer(0, 1)} style={[styles.arrowButton, { backgroundColor: theme.surface }]}>
-                <Text style={[styles.arrowText, { color: theme.primary }]}>▼</Text>
-              </Pressable>
-              <Pressable accessibilityLabel="التحرك إلى اليمين" onPress={() => movePlayer(1, 0)} style={[styles.arrowButton, { backgroundColor: theme.surface }]}>
-                <Text style={[styles.arrowText, { color: theme.primary }]}>▶</Text>
-              </Pressable>
-            </View>
-          </View>
-
-          <View style={styles.actionRow}>
-            <Pressable onPress={useSword} style={[styles.actionButton, { backgroundColor: theme.surface }]}>
-              <Text style={[styles.actionText, { color: theme.fg }]}>⚔️ {progress.swords ?? 0}</Text>
+          <View style={[styles.dpadRing, { borderColor: theme.accent, shadowColor: theme.accent }]}>
+            <Pressable accessibilityLabel="التحرك إلى الأعلى" onPress={() => movePlayer(0, -1)} style={[styles.dpadButton, styles.dpadUp, { backgroundColor: theme.surface }]}>
+              <Text style={[styles.dpadArrow, { color: theme.primary }]}>▲</Text>
             </Pressable>
-            <Pressable onPress={useBomb} style={[styles.actionButton, { backgroundColor: theme.surface }]}>
-              <Text style={[styles.actionText, { color: theme.fg }]}>💣 {progress.bombs ?? 0}</Text>
+            <Pressable accessibilityLabel="التحرك إلى اليسار" onPress={() => movePlayer(-1, 0)} style={[styles.dpadButton, styles.dpadLeft, { backgroundColor: theme.surface }]}>
+              <Text style={[styles.dpadArrow, { color: theme.primary }]}>◀</Text>
             </Pressable>
-            <Pressable onPress={() => { setShopReturnScreen('playing'); setScreen('shop'); }} style={[styles.actionButton, { backgroundColor: theme.surface }]}>
-              <Text style={[styles.actionText, { color: theme.fg }]}>المتجر</Text>
+            <View style={[styles.dpadCenter, { borderColor: theme.accent, backgroundColor: theme.bg }]}>
+              <Text style={[styles.dpadCenterText, { color: theme.primary }]}>✦</Text>
+            </View>
+            <Pressable accessibilityLabel="التحرك إلى اليمين" onPress={() => movePlayer(1, 0)} style={[styles.dpadButton, styles.dpadRight, { backgroundColor: theme.surface }]}>
+              <Text style={[styles.dpadArrow, { color: theme.primary }]}>▶</Text>
+            </Pressable>
+            <Pressable accessibilityLabel="التحرك إلى الأسفل" onPress={() => movePlayer(0, 1)} style={[styles.dpadButton, styles.dpadDown, { backgroundColor: theme.surface }]}>
+              <Text style={[styles.dpadArrow, { color: theme.primary }]}>▼</Text>
             </Pressable>
           </View>
-          <View style={styles.actionRow}>
-            <Pressable onPress={() => startLevel(currentLevel)} style={[styles.actionButton, { backgroundColor: theme.surface }]}>
-              <Text style={[styles.actionText, { color: theme.fg }]}>إعادة</Text>
-            </Pressable>
-            <Pressable onPress={() => setScreen('start')} style={[styles.actionButton, { backgroundColor: theme.surface }]}>
-              <Text style={[styles.actionText, { color: theme.fg }]}>الرئيسية</Text>
-            </Pressable>
-            <Pressable onPress={() => setScreen('settings')} style={[styles.actionButton, { backgroundColor: theme.surface }]}>
-              <Text style={[styles.actionText, { color: theme.fg }]}>الإعدادات</Text>
-            </Pressable>
+          <View style={styles.orbitActions}>
+            <Pressable accessibilityLabel="استخدام السيف" onPress={useSword} style={[styles.orbitButton, { backgroundColor: theme.surface, borderColor: theme.primary }]}><Text style={styles.orbitIcon}>⚔️</Text><Text style={[styles.orbitCount, { color: theme.fg }]}>{progress.swords ?? 0}</Text></Pressable>
+            <Pressable accessibilityLabel="استخدام القنبلة" onPress={useBomb} style={[styles.orbitButton, { backgroundColor: theme.surface, borderColor: theme.accent }]}><Text style={styles.orbitIcon}>💣</Text><Text style={[styles.orbitCount, { color: theme.fg }]}>{progress.bombs ?? 0}</Text></Pressable>
+            <Pressable accessibilityLabel="فتح المتجر" onPress={() => { setShopReturnScreen('playing'); setScreen('shop'); }} style={[styles.orbitButton, { backgroundColor: theme.surface, borderColor: theme.primary }]}><Text style={styles.orbitIcon}>🛒</Text><Text style={[styles.orbitLabel, { color: theme.fg }]}>المتجر</Text></Pressable>
+            <Pressable accessibilityLabel="إعادة المرحلة" onPress={() => startLevel(currentLevel)} style={[styles.orbitButton, { backgroundColor: theme.surface, borderColor: theme.secondary }]}><Text style={styles.orbitIcon}>↻</Text><Text style={[styles.orbitLabel, { color: theme.fg }]}>إعادة</Text></Pressable>
+            <Pressable accessibilityLabel="العودة للرئيسية" onPress={() => setScreen('start')} style={[styles.orbitButton, { backgroundColor: theme.surface, borderColor: theme.accent }]}><Text style={styles.orbitIcon}>⌂</Text><Text style={[styles.orbitLabel, { color: theme.fg }]}>الرئيسية</Text></Pressable>
+            <Pressable accessibilityLabel="الإعدادات" onPress={() => setScreen('settings')} style={[styles.orbitButton, { backgroundColor: theme.surface, borderColor: theme.secondary }]}><Text style={styles.orbitIcon}>⚙</Text><Text style={[styles.orbitLabel, { color: theme.fg }]}>إعدادات</Text></Pressable>
           </View>
         </View>
       </Animated.View>
@@ -632,34 +638,72 @@ const styles = StyleSheet.create({
     borderRadius: 99,
   },
   controls: {
-    borderRadius: 18,
-    marginTop: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 8,
-  },
-  arrowPad: {
+    borderRadius: 20,
+    marginTop: 5,
+    paddingHorizontal: 6,
+    paddingVertical: 7,
     alignItems: 'center',
   },
-  middleRow: {
+  dpadRing: {
+    width: 188,
+    height: 188,
+    borderRadius: 94,
+    borderWidth: 5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+    backgroundColor: '#303641',
+    shadowOpacity: 0.65,
+    shadowRadius: 13,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 10,
+  },
+  dpadButton: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    position: 'absolute',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.16)',
+  },
+  dpadUp: { top: 9 },
+  dpadDown: { bottom: 9 },
+  dpadLeft: { left: 9 },
+  dpadRight: { right: 9 },
+  dpadArrow: { fontSize: 24, fontWeight: '900' },
+  dpadCenter: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    borderWidth: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dpadCenterText: { fontSize: 27, fontWeight: '900' },
+  orbitActions: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 2,
-    direction: 'ltr',
+    gap: 6,
+    marginTop: 8,
+    width: '100%',
   },
-  arrowSpacer: { width: 74, height: 62, marginHorizontal: 4 },
-  arrowButton: {
-    width: 66,
-    height: 62,
-    borderRadius: 14,
+  orbitButton: {
+    minWidth: 52,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 1.5,
+    paddingHorizontal: 7,
+    alignItems: 'center',
     justifyContent: 'center',
-    alignItems: 'center',
-    marginHorizontal: 4,
+    flexDirection: 'row',
+    gap: 3,
   },
-  arrowText: {
-    fontSize: 26,
-    fontWeight: '900',
-  },
+  orbitIcon: { fontSize: 17 },
+  orbitCount: { fontSize: 11, fontWeight: '900' },
+  orbitLabel: { fontSize: 10, fontWeight: '800' },
   actionRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
