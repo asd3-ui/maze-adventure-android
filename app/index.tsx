@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, BackHandler, Pressable, StyleSheet, Text, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -74,6 +74,20 @@ export default function App() {
   const turnRef = useRef(0);
   playerRef.current = player;
   turnRef.current = moves + seconds;
+
+  // Android system Back navigates through the game's screens.
+  useEffect(() => {
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (screen === 'start') return false;
+      if (screen === 'shop') {
+        setScreen(shopReturnScreen);
+        return true;
+      }
+      setScreen('start');
+      return true;
+    });
+    return () => subscription.remove();
+  }, [screen, shopReturnScreen]);
 
   useEffect(() => {
     Animated.timing(screenSlide, {
@@ -494,17 +508,21 @@ export default function App() {
 
         <View style={[styles.controls, { backgroundColor: theme.panel }]}>
           <View style={styles.arrowPad}>
-            <Pressable onPress={() => movePlayer(0, -1)} style={[styles.arrowButton, { backgroundColor: theme.surface }]}>
-              <Text style={[styles.arrowText, { color: theme.primary }]}>▲</Text>
-            </Pressable>
             <View style={styles.middleRow}>
-              <Pressable onPress={() => movePlayer(-1, 0)} style={[styles.arrowButton, { backgroundColor: theme.surface }]}>
+              <View style={styles.arrowSpacer} />
+              <Pressable accessibilityLabel="التحرك إلى الأعلى" onPress={() => movePlayer(0, -1)} style={[styles.arrowButton, { backgroundColor: theme.surface }]}>
+                <Text style={[styles.arrowText, { color: theme.primary }]}>▲</Text>
+              </Pressable>
+              <View style={styles.arrowSpacer} />
+            </View>
+            <View style={styles.middleRow}>
+              <Pressable accessibilityLabel="التحرك إلى اليسار" onPress={() => movePlayer(-1, 0)} style={[styles.arrowButton, { backgroundColor: theme.surface }]}>
                 <Text style={[styles.arrowText, { color: theme.primary }]}>◀</Text>
               </Pressable>
-              <Pressable onPress={() => movePlayer(0, 1)} style={[styles.arrowButton, { backgroundColor: theme.surface }]}>
+              <Pressable accessibilityLabel="التحرك إلى الأسفل" onPress={() => movePlayer(0, 1)} style={[styles.arrowButton, { backgroundColor: theme.surface }]}>
                 <Text style={[styles.arrowText, { color: theme.primary }]}>▼</Text>
               </Pressable>
-              <Pressable onPress={() => movePlayer(1, 0)} style={[styles.arrowButton, { backgroundColor: theme.surface }]}>
+              <Pressable accessibilityLabel="التحرك إلى اليمين" onPress={() => movePlayer(1, 0)} style={[styles.arrowButton, { backgroundColor: theme.surface }]}>
                 <Text style={[styles.arrowText, { color: theme.primary }]}>▶</Text>
               </Pressable>
             </View>
@@ -547,14 +565,16 @@ const styles = StyleSheet.create({
   },
   playArea: {
     flex: 1,
-    padding: 16,
-    justifyContent: 'center',
+    paddingHorizontal: 8,
+    paddingTop: 4,
+    paddingBottom: 6,
+    justifyContent: 'space-evenly',
   },
   topBar: {
     borderRadius: 18,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    marginBottom: 16,
+    marginBottom: 8,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -603,8 +623,9 @@ const styles = StyleSheet.create({
   },
   controls: {
     borderRadius: 18,
-    marginTop: 16,
-    padding: 16,
+    marginTop: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 8,
   },
   arrowPad: {
     alignItems: 'center',
@@ -612,15 +633,16 @@ const styles = StyleSheet.create({
   middleRow: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginTop: 12,
+    marginTop: 3,
+    direction: 'ltr',
   },
   arrowButton: {
-    width: 58,
-    height: 58,
+    width: 66,
+    height: 62,
     borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
-    marginHorizontal: 8,
+    marginHorizontal: 4,
   },
   arrowText: {
     fontSize: 26,
@@ -629,13 +651,13 @@ const styles = StyleSheet.create({
   actionRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 16,
+    marginTop: 7,
   },
   actionButton: {
     flex: 1,
     marginHorizontal: 4,
     borderRadius: 12,
-    paddingVertical: 12,
+    paddingVertical: 10,
     alignItems: 'center',
   },
   shopItem: { borderWidth: 1, borderRadius: 14, padding: 16, marginBottom: 12, alignItems: 'center', gap: 6 },
