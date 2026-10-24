@@ -207,28 +207,50 @@ export default function App() {
     void triggerHaptics('heavy');
   };
 
+  const activeSoundRef = useRef<Audio.Sound | null>(null);
+  const lastSoundAtRef = useRef(0);
   const playSound = async (type: 'move' | 'win' | 'lose' | 'gem' | 'attack' = 'move') => {
     if (!progress.soundEnabled) return;
+    const now = Date.now();
+    // Movement sounds are deliberately rate-limited; one sound at a time prevents overlap.
+    if (type === 'move' && now - lastSoundAtRef.current < 180) return;
+    lastSoundAtRef.current = now;
     const soundUrls: Record<typeof type, string> = {
       move: 'https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg',
-      win: 'https://actions.google.com/sounds/v1/ jingles/ winning.ogg',
-      lose: 'https://actions.google.com/sounds/v1/cartoon/cartoon_boing.ogg',
+      win: 'https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg',
+      lose: 'https://actions.google.com/sounds/v1/cartoon/boing.ogg',
       gem: 'https://actions.google.com/sounds/v1/cartoon/pop.ogg',
       attack: 'https://actions.google.com/sounds/v1/impacts/crash.ogg',
     };
-    let sound: Audio.Sound | undefined;
     try {
-      const uri = soundUrls[type].replace(' ', '');
-      const loaded = await Audio.Sound.createAsync({ uri }, { shouldPlay: true, volume: 0.55 });
-      sound = loaded.sound;
+      const previous = activeSoundRef.current;
+      activeSoundRef.current = null;
+      if (previous) {
+        previous.setOnPlaybackStatusUpdate(null);
+        await previous.stopAsync().catch(() => undefined);
+        await previous.unloadAsync().catch(() => undefined);
+      }
+      const { sound } = await Audio.Sound.createAsync(
+        { uri: soundUrls[type] },
+        { shouldPlay: true, volume: type === 'move' ? 0.22 : 0.55 },
+      );
+      activeSoundRef.current = sound;
       sound.setOnPlaybackStatusUpdate((status) => {
-        if (status.isLoaded && status.didJustFinish) void sound?.unloadAsync();
+        if (status.isLoaded && status.didJustFinish && activeSoundRef.current === sound) {
+          activeSoundRef.current = null;
+          void sound.unloadAsync().catch(() => undefined);
+        }
       });
     } catch {
-      // Audio is optional: a network/audio failure must never interrupt gameplay.
-      try { await sound?.unloadAsync(); } catch {}
+      // Audio playback is best-effort and must not interrupt the game.
     }
   };
+
+  useEffect(() => () => {
+    const sound = activeSoundRef.current;
+    activeSoundRef.current = null;
+    if (sound) void sound.unloadAsync().catch(() => undefined);
+  }, []);
 
   const triggerHaptics = async (mode: 'light' | 'medium' | 'heavy') => {
     if (!progress.vibrationEnabled) {
@@ -506,65 +528,29 @@ export default function App() {
           },
         ]}
       >
-        <View style={[styles.topBar, { backgroundColor: theme.panel }]}>
-          <Text style={[styles.topBarText, { color: theme.fg }]}>{currentLevel}/100 · {LEVEL_ENVIRONMENTS[(currentLevel - 1) % LEVEL_ENVIRONMENTS.length]}</Text>
-          <Text style={[styles.topBarText, { color: theme.secondary }]}>الحركات: {moves}</Text>
-          <Text style={[styles.topBarText, { color: timeLeft <= 15 ? '#fb7185' : theme.secondary }]}>
-            ⏳ {String(Math.floor(timeLeft / 60)).padStart(2, '0')}:{String(timeLeft % 60).padStart(2, '0')}
-          </Text>
-          <Text style={[styles.topBarText, { color: theme.accent }]}>🪙 {progress.coins ?? 0} · {score}</Text>
-        </View>
-
-        {bossEnemy ? (
-          <View style={[styles.bossStatus, { backgroundColor: theme.panel, borderColor: theme.primary }]}>
-            <Text style={[styles.bossText, { color: theme.fg }]}>Boss</Text>
-            <Text style={[styles.bossPhase, { color: theme.accent }]}>{bossEnemy.phase ?? 'charge'}</Text>
-            <View style={[styles.bossBar, { backgroundColor: theme.surface }]}>
-              <View
-                style={[
-                  styles.bossBarFill,
-                  {
-                    width: `${((bossEnemy.hp ?? bossEnemy.maxHp ?? 1) / (bossEnemy.maxHp ?? 1)) * 100}%`,
-                    backgroundColor: '#ef4444',
-                  },
-                ]}
-              />
-            </View>
-          </View>
-        ) : null}
-
-        <View style={[styles.legend, { backgroundColor: theme.panel }]}>
-          <Text style={[styles.legendText, { color: theme.fg }]}>💎 +50</Text>
-          <Text style={[styles.legendText, { color: theme.fg }]}>🛡️ حماية: {shieldCharges}</Text>
-          <Text style={[styles.legendText, { color: theme.secondary }]}>اعثر على طريق بديل!</Text>
-        </View>
         <MazeBoard maze={maze} player={player} goal={goal} enemies={enemies} hint={hint} theme={theme} gems={gems} shieldPickup={shieldPickup} />
 
         <View style={[styles.controls, { backgroundColor: theme.panel }]}>
-          <View style={[styles.dpadRing, { borderColor: theme.accent, shadowColor: theme.accent }]}>
-            <Pressable accessibilityLabel="التحرك إلى الأعلى" onPress={() => movePlayer(0, -1)} style={[styles.dpadButton, styles.dpadUp, { backgroundColor: theme.surface }]}>
-              <Text style={[styles.dpadArrow, { color: theme.primary }]}>▲</Text>
-            </Pressable>
-            <Pressable accessibilityLabel="التحرك إلى اليسار" onPress={() => movePlayer(-1, 0)} style={[styles.dpadButton, styles.dpadLeft, { backgroundColor: theme.surface }]}>
-              <Text style={[styles.dpadArrow, { color: theme.primary }]}>◀</Text>
-            </Pressable>
-            <View style={[styles.dpadCenter, { borderColor: theme.accent, backgroundColor: theme.bg }]}>
-              <Text style={[styles.dpadCenterText, { color: theme.primary }]}>✦</Text>
+          <View style={styles.controlLayout}>
+            <View style={styles.cornerColumn}>
+              <Pressable accessibilityLabel="استخدام السيف" onPress={useSword} style={[styles.cornerButton, { backgroundColor: theme.surface, borderColor: theme.primary }]}><Text style={styles.cornerIcon}>⚔️</Text><Text style={[styles.cornerCount, { color: theme.fg }]}>{progress.swords ?? 0}</Text></Pressable>
+              <Pressable accessibilityLabel="فتح المتجر" onPress={() => { setShopReturnScreen('playing'); setScreen('shop'); }} style={[styles.cornerButton, { backgroundColor: theme.surface, borderColor: theme.primary }]}><Text style={styles.cornerIcon}>🛒</Text><Text style={[styles.cornerLabel, { color: theme.fg }]}>المتجر</Text></Pressable>
             </View>
-            <Pressable accessibilityLabel="التحرك إلى اليمين" onPress={() => movePlayer(1, 0)} style={[styles.dpadButton, styles.dpadRight, { backgroundColor: theme.surface }]}>
-              <Text style={[styles.dpadArrow, { color: theme.primary }]}>▶</Text>
-            </Pressable>
-            <Pressable accessibilityLabel="التحرك إلى الأسفل" onPress={() => movePlayer(0, 1)} style={[styles.dpadButton, styles.dpadDown, { backgroundColor: theme.surface }]}>
-              <Text style={[styles.dpadArrow, { color: theme.primary }]}>▼</Text>
-            </Pressable>
+            <View style={[styles.dpadRing, { borderColor: theme.accent, shadowColor: theme.accent }]}>
+              <Pressable accessibilityLabel="التحرك إلى الأعلى" onPress={() => movePlayer(0, -1)} style={[styles.dpadButton, styles.dpadUp, { backgroundColor: theme.surface }]}><Text style={[styles.dpadArrow, { color: theme.primary, writingDirection: 'ltr', textAlign: 'center' }]}>▲</Text></Pressable>
+              <Pressable accessibilityLabel="التحرك إلى اليسار" onPress={() => movePlayer(-1, 0)} style={[styles.dpadButton, styles.dpadLeft, { backgroundColor: theme.surface }]}><Text style={[styles.dpadArrow, { color: theme.primary, writingDirection: 'ltr', textAlign: 'center' }]}>◀</Text></Pressable>
+              <View style={[styles.dpadCenter, { borderColor: theme.accent, backgroundColor: theme.bg }]}><Text style={[styles.dpadCenterText, { color: theme.primary }]}>✦</Text></View>
+              <Pressable accessibilityLabel="التحرك إلى اليمين" onPress={() => movePlayer(1, 0)} style={[styles.dpadButton, styles.dpadRight, { backgroundColor: theme.surface }]}><Text style={[styles.dpadArrow, { color: theme.primary, writingDirection: 'ltr', textAlign: 'center' }]}>▶</Text></Pressable>
+              <Pressable accessibilityLabel="التحرك إلى الأسفل" onPress={() => movePlayer(0, 1)} style={[styles.dpadButton, styles.dpadDown, { backgroundColor: theme.surface }]}><Text style={[styles.dpadArrow, { color: theme.primary, writingDirection: 'ltr', textAlign: 'center' }]}>▼</Text></Pressable>
+            </View>
+            <View style={styles.cornerColumn}>
+              <Pressable accessibilityLabel="استخدام القنبلة" onPress={useBomb} style={[styles.cornerButton, { backgroundColor: theme.surface, borderColor: theme.accent }]}><Text style={styles.cornerIcon}>💣</Text><Text style={[styles.cornerCount, { color: theme.fg }]}>{progress.bombs ?? 0}</Text></Pressable>
+              <Pressable accessibilityLabel="العودة إلى القائمة الرئيسية" onPress={() => setScreen('start')} style={[styles.cornerButton, { backgroundColor: theme.surface, borderColor: theme.accent }]}><Text style={styles.cornerIcon}>⌂</Text><Text style={[styles.cornerLabel, { color: theme.fg }]}>القائمة</Text></Pressable>
+            </View>
           </View>
-          <View style={styles.orbitActions}>
-            <Pressable accessibilityLabel="استخدام السيف" onPress={useSword} style={[styles.orbitButton, { backgroundColor: theme.surface, borderColor: theme.primary }]}><Text style={styles.orbitIcon}>⚔️</Text><Text style={[styles.orbitCount, { color: theme.fg }]}>{progress.swords ?? 0}</Text></Pressable>
-            <Pressable accessibilityLabel="استخدام القنبلة" onPress={useBomb} style={[styles.orbitButton, { backgroundColor: theme.surface, borderColor: theme.accent }]}><Text style={styles.orbitIcon}>💣</Text><Text style={[styles.orbitCount, { color: theme.fg }]}>{progress.bombs ?? 0}</Text></Pressable>
-            <Pressable accessibilityLabel="فتح المتجر" onPress={() => { setShopReturnScreen('playing'); setScreen('shop'); }} style={[styles.orbitButton, { backgroundColor: theme.surface, borderColor: theme.primary }]}><Text style={styles.orbitIcon}>🛒</Text><Text style={[styles.orbitLabel, { color: theme.fg }]}>المتجر</Text></Pressable>
-            <Pressable accessibilityLabel="إعادة المرحلة" onPress={() => startLevel(currentLevel)} style={[styles.orbitButton, { backgroundColor: theme.surface, borderColor: theme.secondary }]}><Text style={styles.orbitIcon}>↻</Text><Text style={[styles.orbitLabel, { color: theme.fg }]}>إعادة</Text></Pressable>
-            <Pressable accessibilityLabel="العودة للرئيسية" onPress={() => setScreen('start')} style={[styles.orbitButton, { backgroundColor: theme.surface, borderColor: theme.accent }]}><Text style={styles.orbitIcon}>⌂</Text><Text style={[styles.orbitLabel, { color: theme.fg }]}>الرئيسية</Text></Pressable>
-            <Pressable accessibilityLabel="الإعدادات" onPress={() => setScreen('settings')} style={[styles.orbitButton, { backgroundColor: theme.surface, borderColor: theme.secondary }]}><Text style={styles.orbitIcon}>⚙</Text><Text style={[styles.orbitLabel, { color: theme.fg }]}>إعدادات</Text></Pressable>
+          <View style={styles.utilityRow}>
+            <Pressable onPress={() => startLevel(currentLevel)} style={[styles.utilityButton, { backgroundColor: theme.surface }]}><Text style={[styles.utilityText, { color: theme.fg }]}>↻ إعادة</Text></Pressable>
+            <Pressable onPress={() => setScreen('settings')} style={[styles.utilityButton, { backgroundColor: theme.surface }]}><Text style={[styles.utilityText, { color: theme.fg }]}>⚙ الإعدادات</Text></Pressable>
           </View>
         </View>
       </Animated.View>
@@ -581,33 +567,14 @@ const styles = StyleSheet.create({
   },
   playArea: {
     flex: 1,
-    paddingHorizontal: 8,
-    paddingTop: 4,
-    paddingBottom: 6,
-    justifyContent: 'space-evenly',
-  },
-  topBar: {
-    borderRadius: 18,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    marginBottom: 8,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: 6,
+    paddingHorizontal: 4,
+    paddingTop: 2,
+    paddingBottom: 3,
+    justifyContent: 'flex-start',
   },
   topBarText: {
     fontSize: 13,
     fontWeight: '800',
-  },
-  legend: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 6,
-    marginBottom: 8,
-    borderRadius: 12,
   },
   legendText: { fontSize: 11, fontWeight: '800' },
   bossStatus: {
@@ -638,16 +605,25 @@ const styles = StyleSheet.create({
     borderRadius: 99,
   },
   controls: {
-    borderRadius: 20,
-    marginTop: 5,
-    paddingHorizontal: 6,
-    paddingVertical: 7,
+    borderRadius: 18,
+    marginTop: 3,
+    paddingHorizontal: 3,
+    paddingVertical: 4,
     alignItems: 'center',
   },
+  controlLayout: { width: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', direction: 'ltr' },
+  cornerColumn: { width: 54, alignItems: 'center', justifyContent: 'space-evenly', gap: 12 },
+  cornerButton: { width: 48, height: 48, borderRadius: 16, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', padding: 2 },
+  cornerIcon: { fontSize: 19, textAlign: 'center' },
+  cornerCount: { fontSize: 10, fontWeight: '900', textAlign: 'center' },
+  cornerLabel: { fontSize: 9, fontWeight: '800', textAlign: 'center' },
+  utilityRow: { flexDirection: 'row', width: '100%', justifyContent: 'center', gap: 8, marginTop: 4 },
+  utilityButton: { borderRadius: 10, paddingVertical: 5, paddingHorizontal: 12, minWidth: 92, alignItems: 'center' },
+  utilityText: { fontSize: 10, fontWeight: '800' },
   dpadRing: {
-    width: 188,
-    height: 188,
-    borderRadius: 94,
+    width: 174,
+    height: 174,
+    borderRadius: 87,
     borderWidth: 5,
     alignItems: 'center',
     justifyContent: 'center',
@@ -659,20 +635,20 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
   dpadButton: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     position: 'absolute',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.16)',
   },
-  dpadUp: { top: 9 },
-  dpadDown: { bottom: 9 },
-  dpadLeft: { left: 9 },
-  dpadRight: { right: 9 },
-  dpadArrow: { fontSize: 24, fontWeight: '900' },
+  dpadUp: { top: 7 },
+  dpadDown: { bottom: 7 },
+  dpadLeft: { left: 7 },
+  dpadRight: { right: 7 },
+  dpadArrow: { fontSize: 24, fontWeight: '900', includeFontPadding: false },
   dpadCenter: {
     width: 70,
     height: 70,
