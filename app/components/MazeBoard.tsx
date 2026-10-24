@@ -19,8 +19,8 @@ export function MazeBoard({ maze, player, goal, enemies, hint, theme, gems = [],
   const hintSet = useMemo(() => new Set(hint.map((cell) => `${cell.x},${cell.y}`)), [hint]);
   const gemSet = useMemo(() => new Set(gems.map((cell) => `${cell.x},${cell.y}`)), [gems]);
   const boardWidth = Math.max(maze[0]?.length ?? 0, maze.length);
-  const availableWidth = Dimensions.get('window').width - 24;
-  const cellSize = Math.max(16, Math.min(32, availableWidth / boardWidth - 1));
+  const availableWidth = Dimensions.get('window').width - 16;
+  const cellSize = Math.max(16, Math.min(32, (availableWidth - 12) / boardWidth));
 
   return (
     <View style={[styles.board, { backgroundColor: theme.panel, borderColor: theme.primary, maxWidth: availableWidth }]}> 
@@ -67,7 +67,7 @@ const styles = StyleSheet.create({
   board: {
     borderRadius: 18,
     borderWidth: 2,
-    padding: 8,
+    padding: 4,
     alignSelf: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 10 },
@@ -81,7 +81,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 4,
-    margin: 1,
+    margin: 0,
   },
   hintDot: { width: 5, height: 5, borderRadius: 99, opacity: 0.8 },
   pickup: { textAlign: 'center' },
