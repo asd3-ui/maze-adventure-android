@@ -20,7 +20,7 @@ export function MazeBoard({ maze, player, goal, enemies, hint, theme, gems = [],
   const gemSet = useMemo(() => new Set(gems.map((cell) => `${cell.x},${cell.y}`)), [gems]);
   const boardWidth = Math.max(maze[0]?.length ?? 0, maze.length);
   const availableWidth = Dimensions.get('window').width - 16;
-  const cellSize = Math.max(16, Math.min(32, (availableWidth - 12) / boardWidth));
+  const cellSize = Math.max(15, Math.min(36, (availableWidth - 8) / boardWidth));
 
   return (
     <View style={[styles.board, { backgroundColor: theme.panel, borderColor: theme.primary, maxWidth: availableWidth }]}> 
@@ -51,7 +51,7 @@ export function MazeBoard({ maze, player, goal, enemies, hint, theme, gems = [],
                 {isHint && <View style={[styles.hintDot, { backgroundColor: theme.accent }]} />}
                 {isGem && <Text style={[styles.pickup, { fontSize: Math.max(8, cellSize * 0.75) }]}>💎</Text>}
                 {isShield && <Text style={[styles.pickup, { fontSize: Math.max(8, cellSize * 0.75) }]}>🛡️</Text>}
-                {isGoal && <Text style={[styles.marker, { fontSize: Math.max(9, cellSize * 0.8) }]}>🚪</Text>}
+                {isGoal && <View style={[styles.goalGate, { borderColor: theme.accent, backgroundColor: theme.goal }]}><Text style={[styles.goalMarker, { fontSize: Math.max(13, cellSize * 0.95) }]}>🌀</Text></View>}
                 {isEnemy && <Text style={[styles.marker, { fontSize: Math.max(9, cellSize * 0.8) }]}>{enemies.find((enemy) => enemy.x === x && enemy.y === y)?.kind === 'boss' ? '👹' : '👾'}</Text>}
                 {isPlayer && <Text style={[styles.marker, { fontSize: Math.max(9, cellSize * 0.8) }]}>🧙</Text>}
               </View>
@@ -86,4 +86,6 @@ const styles = StyleSheet.create({
   hintDot: { width: 5, height: 5, borderRadius: 99, opacity: 0.8 },
   pickup: { textAlign: 'center' },
   marker: { textAlign: 'center', lineHeight: 15 },
+  goalGate: { width: '100%', height: '100%', borderWidth: 2, borderRadius: 6, alignItems: 'center', justifyContent: 'center', shadowColor: '#facc15', shadowOpacity: 0.95, shadowRadius: 8, elevation: 8 },
+  goalMarker: { textAlign: 'center', textAlignVertical: 'center' },
 });
