@@ -75,7 +75,7 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 8,
   },
-  row: { flexDirection: 'row' },
+  row: { flexDirection: 'row', direction: 'ltr' },
   cell: {
     borderWidth: 1,
     justifyContent: 'center',
