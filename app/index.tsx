@@ -633,9 +633,11 @@ const styles = StyleSheet.create({
   middleRow: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginTop: 3,
+    alignItems: 'center',
+    marginTop: 2,
     direction: 'ltr',
   },
+  arrowSpacer: { width: 74, height: 62, marginHorizontal: 4 },
   arrowButton: {
     width: 66,
     height: 62,
