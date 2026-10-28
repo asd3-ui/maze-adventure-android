@@ -144,7 +144,12 @@ export function generateMaze(n: number, seed: number): number[][] {
     stack.push(next);
   }
 
-  // Open extra walls to create loops and multiple escape routes instead of a single forced corridor.
+  // Keep the maze as a perfect maze: no extra loop openings. This gives each
+  // level one clearly defined external exit and prevents accidental side exits.
+  // The only opening in the outer boundary is the gate at the bottom.
+  grid[n - 2][n - 2] = 0;
+  grid[n - 1][n - 2] = 0;
+  return grid;
   const loopCandidates: Point[] = [];
   for (let y = 1; y < n - 1; y += 1) {
     for (let x = 1; x < n - 1; x += 1) {
@@ -178,7 +183,7 @@ export function isWalkable(maze: number[][], x: number, y: number) {
 export function findShortestPath(maze: number[][]): Point[] {
   const size = maze.length;
   const start: Point = { x: 1, y: 1 };
-  const goal: Point = { x: size - 2, y: size - 2 };
+  const goal: Point = { x: size - 2, y: size - 1 };
   const queue: Point[] = [start];
   const prev = new Map<string, Point | null>([[`${start.x},${start.y}`, null]]);
 
@@ -320,7 +325,7 @@ export function buildLevel(level: number) {
   const config = getLevelConfig(level);
   const size = config.size;
   const maze = generateMaze(size, level * 137 + 17);
-  const goal = { x: size - 2, y: size - 2 };
+  const goal = { x: size - 2, y: size - 1 };
   const player = { x: 1, y: 1 };
 
   const cells: Point[] = [];
