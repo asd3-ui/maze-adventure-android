@@ -528,6 +528,15 @@ export default function App() {
           },
         ]}
       >
+        <View style={[styles.hud, { backgroundColor: theme.panel, borderColor: theme.primary }]}>
+          <View style={styles.hudStat}><Text style={styles.hudIcon}>🗝️</Text><Text style={[styles.hudValue, { color: theme.fg }]}>{currentLevel}/{TOTAL_LEVELS}</Text></View>
+          <View style={styles.hudStat}><Text style={styles.hudIcon}>💎</Text><Text style={[styles.hudValue, { color: theme.fg }]}>{progress.coins ?? 0}</Text></View>
+          <View style={styles.hudStat}><Text style={styles.hudIcon}>👾</Text><Text style={[styles.hudValue, { color: theme.fg }]}>{enemies.length}</Text></View>
+          <View style={[styles.hudStat, styles.timerStat, { borderColor: timeLeft <= 15 ? '#fb7185' : theme.accent }]}>
+            <Text style={styles.hudIcon}>⏳</Text>
+            <Text style={[styles.hudValue, { color: timeLeft <= 15 ? '#fb7185' : theme.fg }]}>{String(Math.floor(timeLeft / 60)).padStart(2, '0')}:{String(timeLeft % 60).padStart(2, '0')}</Text>
+          </View>
+        </View>
         <View style={styles.boardStage}>
           <MazeBoard
             maze={maze}
@@ -585,6 +594,22 @@ const styles = StyleSheet.create({
     paddingBottom: 2,
     justifyContent: 'flex-start',
   },
+  hud: {
+    flexDirection: 'row',
+    direction: 'ltr',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingHorizontal: 8,
+    paddingVertical: 7,
+    marginBottom: 4,
+    flexGrow: 0,
+  },
+  hudStat: { flexDirection: 'row', alignItems: 'center', gap: 4, minWidth: 42, justifyContent: 'center' },
+  hudIcon: { fontSize: 15 },
+  hudValue: { fontSize: 12, fontWeight: '900', fontVariant: ['tabular-nums'] },
+  timerStat: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 7, paddingVertical: 3 },
   boardStage: {
     flex: 1,
     minHeight: 0,
