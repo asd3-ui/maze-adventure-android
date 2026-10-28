@@ -54,6 +54,16 @@ export function MazeBoard({ maze, player, goal, enemies, hint, theme, gems = [],
                   },
                 ]}
               >
+                {cell === 1 && cellSize >= 13 && (
+                  <View pointerEvents="none" style={[styles.rockInset, { borderColor: theme.secondary }]}>
+                    <Text style={[styles.rockGlyph, { color: theme.secondary, fontSize: Math.max(7, cellSize * 0.38) }]}>
+                      {((x * 7 + y * 11) % 3 === 0) ? '◆' : ((x + y) % 2 === 0 ? '▪' : '·')}
+                    </Text>
+                  </View>
+                )}
+                {cell === 0 && !isPlayer && !isEnemy && !isGoal && (x + y) % 5 === 0 && cellSize >= 14 && (
+                  <Text pointerEvents="none" style={[styles.floorRune, { color: theme.secondary, fontSize: Math.max(6, cellSize * 0.28) }]}>·</Text>
+                )}
                 {isHint && <View style={[styles.hintDot, { backgroundColor: theme.accent }]} />}
                 {isGem && <Text style={[styles.pickup, { fontSize: Math.max(8, cellSize * 0.75) }]}>💎</Text>}
                 {isShield && <Text style={[styles.pickup, { fontSize: Math.max(8, cellSize * 0.75) }]}>🛡️</Text>}
@@ -71,24 +81,41 @@ export function MazeBoard({ maze, player, goal, enemies, hint, theme, gems = [],
 
 const styles = StyleSheet.create({
   board: {
-    borderRadius: 18,
+    borderRadius: 13,
     borderWidth: 2,
-    padding: 4,
+    padding: 3,
     alignSelf: 'center',
+    overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.42,
+    shadowRadius: 16,
+    elevation: 12,
   },
   row: { flexDirection: 'row', direction: 'ltr' },
   cell: {
-    borderWidth: 1,
+    borderWidth: 0.7,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 4,
+    borderRadius: 2,
     margin: 0,
+    overflow: 'hidden',
   },
+  rockInset: {
+    position: 'absolute',
+    left: 2,
+    right: 2,
+    top: 2,
+    bottom: 2,
+    borderWidth: 0.7,
+    borderRadius: 3,
+    opacity: 0.6,
+    alignItems: 'flex-end',
+    justifyContent: 'flex-start',
+    paddingRight: 2,
+  },
+  rockGlyph: { fontWeight: '900', opacity: 0.65, lineHeight: 12 },
+  floorRune: { position: 'absolute', opacity: 0.28, fontWeight: '900' },
   hintDot: { width: 5, height: 5, borderRadius: 99, opacity: 0.8 },
   pickup: { textAlign: 'center' },
   marker: { textAlign: 'center', lineHeight: 15 },
