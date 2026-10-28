@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Dimensions, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
 import type { Enemy, MazeTheme, Point } from './types';
 
@@ -12,18 +12,24 @@ type MazeBoardProps = {
   theme: MazeTheme;
   gems?: Point[];
   shieldPickup?: Point | null;
+  maxHeight?: number;
 };
 
-export function MazeBoard({ maze, player, goal, enemies, hint, theme, gems = [], shieldPickup = null }: MazeBoardProps) {
+export function MazeBoard({ maze, player, goal, enemies, hint, theme, gems = [], shieldPickup = null, maxHeight }: MazeBoardProps) {
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const enemySet = useMemo(() => new Set(enemies.map((enemy) => `${enemy.x},${enemy.y}`)), [enemies]);
   const hintSet = useMemo(() => new Set(hint.map((cell) => `${cell.x},${cell.y}`)), [hint]);
   const gemSet = useMemo(() => new Set(gems.map((cell) => `${cell.x},${cell.y}`)), [gems]);
-  const boardWidth = Math.max(maze[0]?.length ?? 0, maze.length);
-  const availableWidth = Dimensions.get('window').width - 16;
-  const cellSize = Math.max(15, Math.min(36, (availableWidth - 8) / boardWidth));
+  const columns = maze[0]?.length ?? 0;
+  const rows = maze.length;
+  const availableWidth = Math.max(100, windowWidth - 16);
+  const availableHeight = Math.max(100, Math.min(maxHeight ?? windowHeight - 300, windowHeight - 120));
+  // Fit the entire maze in the central play area. Larger levels use smaller cells
+  // instead of overflowing under the permanently bottom-anchored controls.
+  const cellSize = Math.max(7, Math.min(36, (availableWidth - 16) / Math.max(1, columns), (availableHeight - 16) / Math.max(1, rows)));
 
   return (
-    <View style={[styles.board, { backgroundColor: theme.panel, borderColor: theme.primary, maxWidth: availableWidth }]}> 
+    <View style={[styles.board, { backgroundColor: theme.panel, borderColor: theme.primary, maxWidth: availableWidth, maxHeight: availableHeight }]}> 
       {maze.map((row, y) => (
         <View key={`row-${y}`} style={styles.row}>
           {row.map((cell, x) => {
