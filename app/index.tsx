@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, BackHandler, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, BackHandler, Dimensions, Pressable, StyleSheet, Text, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import { Audio } from 'expo-av';
@@ -528,7 +528,19 @@ export default function App() {
           },
         ]}
       >
-        <MazeBoard maze={maze} player={player} goal={goal} enemies={enemies} hint={hint} theme={theme} gems={gems} shieldPickup={shieldPickup} />
+        <View style={styles.boardStage}>
+          <MazeBoard
+            maze={maze}
+            player={player}
+            goal={goal}
+            enemies={enemies}
+            hint={hint}
+            theme={theme}
+            gems={gems}
+            shieldPickup={shieldPickup}
+            maxHeight={Math.max(120,  Dimensions.get('window').height - 340)}
+          />
+        </View>
 
         <View style={[styles.controls, { backgroundColor: theme.panel }]}>
           <View style={styles.controlLayout}>
@@ -567,10 +579,19 @@ const styles = StyleSheet.create({
   },
   playArea: {
     flex: 1,
+    minHeight: 0,
     paddingHorizontal: 4,
     paddingTop: 2,
-    paddingBottom: 3,
+    paddingBottom: 2,
     justifyContent: 'flex-start',
+  },
+  boardStage: {
+    flex: 1,
+    minHeight: 0,
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
   },
   topBarText: {
     fontSize: 13,
@@ -605,8 +626,11 @@ const styles = StyleSheet.create({
     borderRadius: 99,
   },
   controls: {
+    flexGrow: 0,
+    flexShrink: 0,
     borderRadius: 18,
-    marginTop: 3,
+    marginTop: 0,
+    marginBottom: 1,
     paddingHorizontal: 3,
     paddingVertical: 4,
     alignItems: 'center',
