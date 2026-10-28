@@ -152,29 +152,6 @@ export function generateMaze(n: number, seed: number): number[][] {
   return grid;
 }
 
-export function isWalkable
-  for (let y = 1; y < n - 1; y += 1) {
-    for (let x = 1; x < n - 1; x += 1) {
-      if (grid[y][x] !== 1) continue;
-      const horizontal = grid[y][x - 1] === 0 && grid[y][x + 1] === 0;
-      const vertical = grid[y - 1][x] === 0 && grid[y + 1][x] === 0;
-      if (horizontal || vertical) loopCandidates.push({ x, y });
-    }
-  }
-  for (let i = loopCandidates.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(random() * (i + 1));
-    [loopCandidates[i], loopCandidates[j]] = [loopCandidates[j], loopCandidates[i]];
-  }
-  const loopCount = Math.min(loopCandidates.length, Math.max(3, Math.floor(n * 0.55)));
-  for (let i = 0; i < loopCount; i += 1) {
-    const wall = loopCandidates[i];
-    grid[wall.y][wall.x] = 0;
-  }
-
-  grid[n - 2][n - 2] = 0;
-  return grid;
-}
-
 export function isWalkable(maze: number[][], x: number, y: number) {
   if (y < 0 || x < 0 || y >= maze.length || x >= maze.length) {
     return false;
