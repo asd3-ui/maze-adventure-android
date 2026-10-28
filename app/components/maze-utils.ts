@@ -150,7 +150,9 @@ export function generateMaze(n: number, seed: number): number[][] {
   grid[n - 2][n - 2] = 0;
   grid[n - 1][n - 2] = 0;
   return grid;
-  const loopCandidates: Point[] = [];
+}
+
+export function isWalkable
   for (let y = 1; y < n - 1; y += 1) {
     for (let x = 1; x < n - 1; x += 1) {
       if (grid[y][x] !== 1) continue;
